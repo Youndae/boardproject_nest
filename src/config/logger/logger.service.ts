@@ -99,8 +99,8 @@ export class LoggerService {
     this.logger.error(message, meta);
   }
 
-  warn(message: string, context?: string) {
-    this.logger.warn(message, { context });
+  warn(message: string, meta?: any, context?: string) {
+    this.logger.warn(message, meta, { context });
   }
 
   debug(message: string, context?: string) {

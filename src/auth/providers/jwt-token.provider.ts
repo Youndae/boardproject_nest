@@ -61,7 +61,7 @@ export class JWTTokenProvider {
     }
   }
 
-  decodeToken(token: string): string {
+  decodeToken(token: string): { userId: string } {
     const replacedToken = this.replaceTokenValue(token);
 
     return this.jwtService.decode(replacedToken);
