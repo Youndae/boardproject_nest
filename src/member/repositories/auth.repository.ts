@@ -1,5 +1,5 @@
 import { DataSource, Repository } from "typeorm";
-import { Auth } from "#member/model/entity/auth.entity";
+import { Auth } from "#member/entities/auth.entity";
 
 export class AuthRepository extends Repository<Auth> {
   constructor(private dataSource: DataSource) {

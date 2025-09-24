@@ -1,15 +1,15 @@
 import { BaseEntity, Column, Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from "typeorm";
-import { Member } from "#member/model/entity/member.entity";
+import { Member } from "#member/entities/member.entity";
 
 @Entity()
 export class Auth extends BaseEntity {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
   id: number;
 
-  @Column({ type: 'varchar', nullable: false })
+  @Column({ type: 'varchar', length: 50, nullable: false })
   userId: string;
 
-  @Column({ type: 'varchar', nullable: false })
+  @Column({ type: 'varchar', length: 20, nullable: false })
   auth: string;
 
   @ManyToOne(() => Member)

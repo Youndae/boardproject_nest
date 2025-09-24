@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { MemberController } from './member.controller';
-import { MemberService } from './member.service';
-import { AuthRepository } from '#member/auth.repository';
+import { MemberController } from './controllers/member.controller';
+import { MemberService } from './services/member.service';
+import { AuthRepository } from '#member/repositories/auth.repository';
 
 @Module({
   controllers: [MemberController],
