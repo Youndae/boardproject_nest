@@ -23,6 +23,8 @@
     "noFallthroughCasesInSwitch": false,
     "paths": {
       "#src/*": ["src/*"],
+      "#config/*": ["src/config/*"],
+      "#common/*": ["src/common/*"],
       "#auth/*": ["src/auth/*"],
       "#board/*": ["src/board/*"],
       "#comment/*": ["src/comment/*"],

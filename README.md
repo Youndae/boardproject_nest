@@ -1,98 +1,79 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# boardProject nest version
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## 목적
+nest 프로젝트 설계 구조 및 TypeORM 학습 목적
+REST API 구조로 프론트엔드 재활용을 통해 Nest만 집중한 경험 목적
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 설치 패키지
+- @nestjs/common 11.0.1
+- @nestjs/config 4.0.2
+- @nestjs/core 11.0.1
+- @nestjs/jwt: 11.0.0
+- @nestjs/passport 11.0.5
+- @nestjs/platform-express 11.1.6
+- @nestjs/typeorm 11.0.0
+- bcrypt 6.0.0
+- cookie-parser 1.4.7
+- cross-env 10.0.0
+- dayjs 1.11.18
+- fs-extra 11.3.2
+- helmet 8.1.0
+- multer 2.0.2
+- mysql2 3.15.0
+- passport 0.7.0
+- passport-google-oauth20 2.0.0
+- passport-kakao 1.0.1 **moderate. passport-oauth2 1.6.1 문제**
+- passport-local 1.0.0
+- passport-naver 1.0.6
+- pm2 6.0.13
+- redis 5.8.2
+- reflect-metadata 0.2.2
+- rxjs 7.8.1
+- sharp 0.34.4
+- uuid 13.0.0
+- winston 3.17.0
+- winston-daily-rotate-file 5.0.0
+- dev
+  - @nestjs/cli 11.0.0
+  - @nestjs/schematics 11.0.0
+  - @nestjs/testing 11.0.1
+  - @types/express 5.0.0
+  - @types/jest 30.0.0
+  - @types/node 22.10.7
+  - @types/supertest 6.0.2
+  - eslint 9.18.0
+  - eslint-config-prettier 10.0.1
+  - eslint-plugin-prettier 5.2.2
+  - jest 30.1.3
+  - nodemon 3.1.10
+  - prettier 3.4.2
+  - supertest 7.1.4
+  - ts-jest 29.4.4
+  - ts-node 10.9.2
+  - tsconfig-paths 4.2.0
+  - typescript 5.7.3
+  - typescript-eslint 8.20.0
 
-## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+---
 
-## Project setup
+# History
 
-```bash
-$ npm install
-```
+## 25/09/23
+> 프로젝트 시작   
+> 기본 모듈 구조만 생성
 
-## Compile and run the project
+<br/>
 
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
-```
-
-## Run tests
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+## 25/09/24
+> 설정 파일 생성 및 작성   
+>> winston logger 설정   
+>> Redis 설정   
+>> TypeORM 설정   
+>> Exception Filter 생성 및 정의   
+>> Custom Excpetion 정의   
+>> Response Status 상수 정의   
+> JWT TokenProvider 생성 및 정의   
+> Redis Service 생성 및 정의   
+> package.json scripts 정의   
+> tsconfig.json paths 정의
