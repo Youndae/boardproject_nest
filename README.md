@@ -55,6 +55,14 @@ REST API 구조로 프론트엔드 재활용을 통해 Nest만 집중한 경험 
   - typescript-eslint 8.20.0
 
 
+## 프로젝트 구조 설계
+- src/ 하위로 각 모듈, common, config 디렉토리 위치.
+- 각 모듈은 하위에 controllers/ dtos/ entities/ repositories/ services/ 디렉토리를 갖고 파일은 module만 존재. 필요에 따라 guards/ 도 추가.   
+- config/ 하위로는 각 용도에 맞게 디렉토리 생성 후 분리.   
+- common/ 하위에는 공통 상수로 constants/, Custom Decorator를 모아둔 decorators/, customException을 모아둔 exceptions/, 각 필터를 모아둔 filters/, guards/, Redis와 같은 공통 사용 서비스를 모아둔 services/ 로 분리.   
+- 최종 src/ 하위 구조는 common/, config/, auth/, member/, board/, image-board/, comment/ 로 설계. auth에는 순수 인증 / 인가에 대한 것만 배치.   
+
+
 ---
 
 # History
@@ -77,3 +85,10 @@ REST API 구조로 프론트엔드 재활용을 통해 Nest만 집중한 경험 
 > Redis Service 생성 및 정의   
 > package.json scripts 정의   
 > tsconfig.json paths 정의
+
+<br/>
+
+## 25/09/25
+> 모든 요청에 대한 토큰 검증을 수행하는 JwtAuthGuard, 권한 제어 필요 시 권한을 체크하는 AuthGuard, AuthGuard 체크시 연동되는 @Roles Custom Decorator 추가.   
+> 각 모듈에 Entity, Repository 생성 및 Module에 정의.   
+> docker-compose 작성 (dev, test 용도.)

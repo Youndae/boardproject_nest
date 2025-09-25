@@ -70,19 +70,21 @@ export class JwtAuthGuard implements CanActivate {
       throw error;
     }
 
-    request.user = { userId: username }
+	if(username)
+    	request.user = { userId: username }
+	
     return true;
   }
 
   private checkTokenPrefix(token: string): boolean {
-    return token.startsWith(this.configService.get<string>('TOKEN_PREFIX')!);
+    return token.startsWith(this.configService.get<string>('JWT_TOKEN_PREFIX')!);
   }
 
 
   private getTokenCookies(req) {
-    const accessHeader: string | undefined = this.configService.get<string>('ACCESS_HEADER');
-    const refreshHeader: string | undefined = this.configService.get<string>('REFRESH_HEADER');
-    const inoHeader: string | undefined = this.configService.get<string>('INO_HEADER');
+    const accessHeader: string | undefined = this.configService.get<string>('JWT_ACCESS_HEADER');
+    const refreshHeader: string | undefined = this.configService.get<string>('JWT_REFRESH_HEADER');
+    const inoHeader: string | undefined = this.configService.get<string>('JWT_INO_HEADER');
 
     const accessToken = req.cookies?.[accessHeader!];
     const refreshToken = req.cookies?.[refreshHeader!];

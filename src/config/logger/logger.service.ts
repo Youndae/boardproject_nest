@@ -37,7 +37,7 @@ export class LoggerService {
     //transports
     const infoTransport = new DailyRotateFile({
       dirname: logDir,
-      filename: 'info-$DATE%.log',
+      filename: 'info-%DATE%.log',
       level: 'info',
       format: timestampAndJsonFormat,
       createSymlink: true,
