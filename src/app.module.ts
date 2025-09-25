@@ -10,6 +10,7 @@ import { ConfigModule } from '@nestjs/config';
 import { LoggerModule } from '#config/logger/logger.module';
 import { RedisModule } from '#config/redis/redis.module';
 import { DatabaseModule } from '#config/db/typeorm.module';
+import { GuardModule } from '#common/guards/guard.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { DatabaseModule } from '#config/db/typeorm.module';
 	LoggerModule,
 	RedisModule,
 	DatabaseModule,
+	GuardModule,
 	BoardModule, 
 	ImageBoardModule, 
 	AuthModule, 

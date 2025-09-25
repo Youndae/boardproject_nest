@@ -3,9 +3,14 @@ import { AnonymousGuard } from '#common/guards/anonymous.guard';
 import { JoinDTO } from '#member/dtos/join.dto';
 import { ProfileUploadInterceptor } from '#common/interceptor/profile-upload.interceptor';
 import type { Request } from 'express';
+import { LoggerService } from '#src/config/logger/logger.service';
 
 @Controller('member')
 export class MemberController {
+
+	constructor(
+		private readonly logger: LoggerService
+	){}
 
   /**
    * POST
@@ -29,6 +34,7 @@ export class MemberController {
    *
    * }
    */
+  @UseGuards(AnonymousGuard)
   @Post('/join')
   @UseInterceptors(ProfileUploadInterceptor)
   @HttpCode(201)
@@ -55,11 +61,5 @@ export class MemberController {
 	*/
 
     return '';
-  }
-
-  @UseGuards(AnonymousGuard)
-  @Post('/login')
-  postLogin(): string {
-    return 'ok';
   }
 }

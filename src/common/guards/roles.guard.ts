@@ -6,7 +6,7 @@ import { ROLES_KEY } from '#common/decorators/roles.decorator';
 import { LoggerService } from '#config/logger/logger.service';
 
 @Injectable()
-export class AuthGuard implements CanActivate {
+export class RolesGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly authRepository: AuthRepository,

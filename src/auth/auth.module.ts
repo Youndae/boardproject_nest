@@ -1,14 +1,20 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { JWTTokenProvider } from './providers/jwt-token.provider';
+import { PassportConfigModule } from './passport/passport.module';
+import { MemberModule } from '#member/member.module';
+import { AuthController } from './controllers/auth.controller';
 
 @Module({
 	imports: [
 		ConfigModule,
-		JwtModule.register({})
+		JwtModule.register({}),
+		PassportConfigModule,
+		MemberModule
 	],
+	controllers: [AuthController],
 	providers: [JWTTokenProvider],
-	exports: [JWTTokenProvider, JwtModule],
+	exports: [JWTTokenProvider, JwtModule, PassportConfigModule],
 })
 export class AuthModule {}
