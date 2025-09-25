@@ -91,4 +91,11 @@ REST API 구조로 프론트엔드 재활용을 통해 Nest만 집중한 경험 
 ## 25/09/25
 > 모든 요청에 대한 토큰 검증을 수행하는 JwtAuthGuard, 권한 제어 필요 시 권한을 체크하는 AuthGuard, AuthGuard 체크시 연동되는 @Roles Custom Decorator 추가.   
 > 각 모듈에 Entity, Repository 생성 및 Module에 정의.   
-> docker-compose 작성 (dev, test 용도.)
+> docker-compose 작성 (dev, test 용도.)   
+> 파일 업로드 Interceptor 생성. 분류별로 profile, board로 나눠서 2개의 Interceptor로 설계.   
+> resizingService, fileService 생성.   
+> 원본 업로드는 Interceptor를 통해서 처리되고 리사이징은 Service에서 호출하는 구조로 설계.   
+> docker-compose에서 데이터베이스 비밀번호 하드코딩에서 환경변수 사용으로 수정.   
+> jest 버전 @29로 맞춰주고 typeorm 의존성 누락되었어서 추가.   
+> validationPipe Global 설정 추가.   
+> CORS 설정 추가.   
