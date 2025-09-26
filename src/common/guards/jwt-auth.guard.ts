@@ -1,5 +1,5 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
-import { JWTTokenProvider } from '#auth/providers/jwt-token.provider';
+import { JWTTokenProvider } from '#auth/services/jwt-token.provider';
 import { ConfigService } from '@nestjs/config';
 import { LoggerService } from '#config/logger/logger.service';
 import { TokenInvalidException } from '#common/exceptions/token-invalid.exception';

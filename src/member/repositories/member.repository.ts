@@ -14,4 +14,14 @@ export class MemberRepository extends Repository<Member> {
 
 	return result;
   }
+
+  async findOAuthMember(provider: string, userId: string): Promise<Member | null> {
+	const result = await this.findOne({
+		where: { userId, provider },
+		select: ['userId']
+	});
+
+	return result;
+  }
+  
 }

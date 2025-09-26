@@ -6,8 +6,12 @@ import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { ConfigService } from '@nestjs/config';
+import { initializeTransactionalContext } from 'typeorm-transactional';
 
 async function bootstrap() {
+
+  initializeTransactionalContext();
+
   //  winston을 사용하기 때문에 Nest 기본 Logger false
   const app = await NestFactory.create(AppModule, { logger: false });
 

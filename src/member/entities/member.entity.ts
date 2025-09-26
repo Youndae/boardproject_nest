@@ -12,13 +12,13 @@ export class Member extends BaseEntity {
   userName: string;
 
   @Column({ type: 'varchar', length: 50, nullable: true, unique: true })
-  nickName: string;
+  nickName: string | null;
 
   @Column({ type: 'varchar', length: 200, nullable: false })
   email: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  profileThumbnail: string;
+  profileThumbnail: string | null;
 
   @Column({ type: 'varchar', length: 45, nullable: false, default: 'local'})
   provider: string;
