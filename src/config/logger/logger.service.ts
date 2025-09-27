@@ -11,6 +11,7 @@ export class LoggerService {
 
   constructor(private readonly configService: ConfigService) {
     const nodeEnv = this.configService.get<string>('NODE_ENV') || 'development';
+
     // log directory
     const logDir = path.join(process.cwd(), 'logs');
     if(!fs.existsSync(logDir))

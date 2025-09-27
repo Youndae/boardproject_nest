@@ -60,7 +60,7 @@ export class OAuthService {
 					provider,
 				});
 
-				const auth = await AuthMapper.toEntityByMember(userId);
+				const auth = AuthMapper.toEntityByMember(userId);
 
 				await this.memberRepository.save(member);
 				await this.authRepository.save(auth);

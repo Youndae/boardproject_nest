@@ -18,7 +18,7 @@ export class AuthController {
 	@Post('/login')
 	@HttpCode(200)
 	async postLogin(@Req() req: Request, @Res() res: Response, @Next() next: NextFunction) {
-
+    console.log('login post');
 		try {
 			const member = req.user as { userId: string };
 	
@@ -33,7 +33,7 @@ export class AuthController {
 		}
 	}
 
-	@UseGuards(AnonymousGuard)
+	/*@UseGuards(AnonymousGuard)
 	@Get('/oauth/:provider')
 	async oAuthLogin(
 		@Param('provider') provider: string,
@@ -94,6 +94,6 @@ export class AuthController {
 				next(error);
 			}
 		})(req, res, next);
-	}
+	}*/
 	
 }

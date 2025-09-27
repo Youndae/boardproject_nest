@@ -8,9 +8,21 @@ import { Member } from '#member/entities/member.entity';
 import { Auth } from '#member/entities/auth.entity';
 
 @Module({
-	imports: [TypeOrmModule.forFeature([Member, Auth])],
+	imports: [
+    TypeOrmModule.forFeature([
+      Member,
+      Auth
+    ])
+  ],
 	controllers: [MemberController],
-	providers: [MemberService, AuthRepository, MemberRepository],
-	exports: [AuthRepository, MemberRepository]
+	providers: [
+    MemberService,
+    AuthRepository,
+    MemberRepository
+  ],
+	exports: [
+    AuthRepository,
+    MemberRepository
+  ]
 })
 export class MemberModule {}

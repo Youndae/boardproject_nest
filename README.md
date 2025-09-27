@@ -106,3 +106,22 @@ REST API 구조로 프론트엔드 재활용을 통해 Nest만 집중한 경험 
 > OAuth passport 전체 구현.   
 > 로그인, 로그아웃 요청에 대해서는 Auth 모듈로 이동.   
 > Module간의 순환참조도 발생할 수 있다고 해서 로그인, 로그아웃을 확실하게 인증 모듈로 분리함으로써 Member 모듈이 Auth 모듈을 참조하지 않도록 개선.
+
+<br/>
+
+## 25/09/27
+> 경로 문제 발생   
+>> 서버 실행 중 오류가 발생.   
+>> 빌드된 main.js를 확인했을 때 경로가 상대경로로 변형되지 않고 그대로 유지되는 것을 확인.   
+>> tsc-alias 패키지 dev 로 설치.   
+>> tsconfig.build.json에 paths 재정의로 문제 해결.   
+> 모듈 및 의존성 개선   
+>> RedisModule, RedisService간 문제 발생.   
+>> RedisService가 REDIS_CLIENT를 주입받으려 하는 시점에 RedisModule의 factory가 아직 완료되지 않을 수 있고,   
+>> factory가 Promise를 반환하기에 RedisService가 생성될때까지 기다리지 않는 경우가 발생할 수 있다.   
+>> 그래서 기존에는 RedisModule의 provider로 RedisService를 같이 작성하게 되어 이 타이밍이 어긋나게 되면 문제가 발생할 여지가 있었던 것.   
+>> 이것을 별도의 RedfisServiceModule로 분리하고 RedisModule은 REDIS_CLIENT만을 반환, RedisServiceModule에서는 RedisService를 제공하도록 개선해서 문제를 해결.   
+> profile별 env 주입 문제   
+>> dev 스크립트로 실행했음에도 .env.development의 환경변수를 제대로 가져오지 못하는 문제 발생.   
+>> ConfigModule.forRoot({ isGlobal: true })로 설정했었기 때문에 .env만 읽어서 문제가 발생한 것.   
+>> envFilePath를 정의해서 profile별로 읽어올 수 있도록 수정.   

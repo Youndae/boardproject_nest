@@ -14,15 +14,21 @@ import { GuardModule } from '#common/guards/guard.module';
 
 @Module({
   imports: [
-	ConfigModule.forRoot({ isGlobal: true }),
+	ConfigModule.forRoot({
+    isGlobal: true,
+    envFilePath: [
+      `.env.${process.env.NODE_ENV || 'development'}`,
+      '.env'
+    ]
+  }),
 	LoggerModule,
 	RedisModule,
 	DatabaseModule,
 	GuardModule,
-	BoardModule, 
-	ImageBoardModule, 
-	AuthModule, 
-	MemberModule, 
+	BoardModule,
+	ImageBoardModule,
+	AuthModule,
+	MemberModule,
 	CommentModule
   ],
   providers: [

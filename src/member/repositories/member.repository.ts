@@ -1,6 +1,8 @@
 import { DataSource, Repository } from 'typeorm';
 import { Member } from '#member/entities/member.entity';
+import { Injectable } from '@nestjs/common';
 
+@Injectable()
 export class MemberRepository extends Repository<Member> {
   constructor(private dataSource: DataSource) {
     super(Member, dataSource.manager);

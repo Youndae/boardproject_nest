@@ -40,7 +40,6 @@ export class JWTTokenProvider {
 
     this.accessSecret = this.configService.get<string>('JWT_ACCESS_SECRET') ?? missingKey.push('JWT_ACCESS_SECRET') as any;
     this.refreshSecret = this.configService.get<string>('JWT_REFRESH_SECRET') ?? missingKey.push('JWT_REFRESH_SECRET') as any;
-
     this.accessExpire = this.configService.get<string>('JWT_ACCESS_EXPIRE') ?? missingKey.push('JWT_ACCESS_EXPIRE') as any;
     this.refreshExpire = this.configService.get<string>('JWT_REFRESH_EXPIRE') ?? missingKey.push('JWT_REFRESH_EXPIRE') as any;
     this.inoExpire = this.configService.get<string>('JWT_INO_EXPIRE') ?? missingKey.push('JWT_INO_EXPIRE') as any;

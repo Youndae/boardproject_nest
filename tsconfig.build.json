@@ -2,7 +2,16 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src",
+    "paths": {
+      "#src/*": ["src/*"],
+      "#config/*": ["src/config/*"],
+      "#common/*": ["src/common/*"],
+      "#auth/*": ["src/auth/*"],
+      "#board/*": ["src/board/*"],
+      "#comment/*": ["src/comment/*"],
+      "#imageBoard/*": ["src/image-board/*"],
+      "#member/*": ["src/member/*"],
+    }
   },
   "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
 }
