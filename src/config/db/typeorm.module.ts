@@ -1,6 +1,8 @@
 import { Module, Global } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { DataSource, DataSourceOptions } from 'typeorm';
+import { addTransactionalDataSource } from 'typeorm-transactional';
 
 @Global()
 @Module({
@@ -19,6 +21,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         synchronize: configService.get<string>('NODE_ENV') === 'test',
         logging: configService.get<string>('NODE_ENV') !== 'production',
       }),
+      dataSourceFactory: async (options: DataSourceOptions) => {
+        const dataSource = new DataSource(options);
+        await dataSource.initialize();
+
+        return addTransactionalDataSource(dataSource);
+      }
     }),
   ],
   exports: [TypeOrmModule],

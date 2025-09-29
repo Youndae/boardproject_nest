@@ -1,4 +1,15 @@
-import { Controller, Post, Get, UseGuards, Body, HttpCode, UploadedFile, UseInterceptors, Req } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  UseGuards,
+  Body,
+  HttpCode,
+  UploadedFile,
+  UseInterceptors,
+  Req,
+  Res, HttpStatus,
+} from '@nestjs/common';
 import { AnonymousGuard } from '#common/guards/anonymous.guard';
 import { JoinDTO } from '#member/dtos/join.dto';
 import { ProfileUploadInterceptor } from '#common/interceptor/profile-upload.interceptor';
@@ -62,4 +73,20 @@ export class MemberController {
 
     return '';
   }
+
+
+  @Get('/check-login')
+  @HttpCode(200)
+  checkUser(@Req() req: Request, @Res() res) {
+
+    let loginStatus = false;
+
+    if(req.user)
+      loginStatus = true;
+
+    return res.status(HttpStatus.OK).json({
+      loginStatus
+    })
+  }
+
 }

@@ -21,8 +21,14 @@ export class GoogleStrategy extends PassportStrategy(googleStrategy, 'google') {
 	}
 
 	async validate(accessToken: string, refreshToken: string, profile: any): Promise<any> {
+    console.log('google Strategy :: validate');
 		const parsedProfile = this.oAuthService.parseGoogleProfile(profile);
+
+    console.log('google Strategy :: parsedProfile : ', parsedProfile);
+
 		const member = await this.oAuthService.findOrCreateOAuthMember('google', parsedProfile);
+
+    console.log('google Strategy :: member : ', member);
 
 		return { userId: member.userId };
 	}

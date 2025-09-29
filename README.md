@@ -125,3 +125,10 @@ REST API 구조로 프론트엔드 재활용을 통해 Nest만 집중한 경험 
 >> dev 스크립트로 실행했음에도 .env.development의 환경변수를 제대로 가져오지 못하는 문제 발생.   
 >> ConfigModule.forRoot({ isGlobal: true })로 설정했었기 때문에 .env만 읽어서 문제가 발생한 것.   
 >> envFilePath를 정의해서 profile별로 읽어올 수 있도록 수정.   
+
+<br/>
+
+## 25/09/29
+> 로그인, oAuth 브라우저 테스트
+> member 기능 구현 및 테스트 작성
+> imageBoard -> board -> comment 순서로 진행

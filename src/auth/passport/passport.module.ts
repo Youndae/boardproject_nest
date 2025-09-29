@@ -8,6 +8,7 @@ import { OAuthService } from "../services/oAuth.service";
 import { MemberModule } from '#member/member.module';
 import { LoggerModule } from '#config/logger/logger.module';
 import { ConfigModule } from '@nestjs/config';
+import { OAuthGuard } from '#common/guards/oauth.guard';
 
 @Module({
 	imports: [
@@ -21,7 +22,7 @@ import { ConfigModule } from '@nestjs/config';
 		GoogleStrategy,
 		KakaoStrategy,
 		NaverStrategy,
-		OAuthService,
+		OAuthService
 	],
 	exports: [PassportModule],
 })

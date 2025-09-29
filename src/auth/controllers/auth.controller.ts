@@ -6,6 +6,7 @@ import { AuthGuard } from "@nestjs/passport";
 import { ResponseStatusConstants } from "#common/constants/response-status.constants";
 import type { Request, Response, NextFunction } from "express";
 import { BadRequestException } from "#common/exceptions/badRequest.exception";
+import { OAuthGuard } from '#common/guards/oauth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -32,6 +33,28 @@ export class AuthController {
 			return next(error);
 		}
 	}
+
+  @UseGuards(AnonymousGuard, OAuthGuard)
+  @Get('/oauth/:provider/')
+  async oAuthLogin(@Param('provider') provider: string) {
+    console.log('oauth login controller');
+  }
+
+  @UseGuards(AnonymousGuard, OAuthGuard)
+  @Get('/oauth/:provider/callback')
+  async callbackOAuth(
+    @Param('provider') provider: string,
+    @Req() req: Request,
+    @Res() res: Response
+  ) {
+
+    console.log('oauth callback');
+
+    const member = req.user as{ userId: string};
+    await this.tokenProvider.issuedAllToken(member.userId, res);
+
+    return res.redirect('http://localhost:3000/');
+  }
 
 	/*@UseGuards(AnonymousGuard)
 	@Get('/oauth/:provider')

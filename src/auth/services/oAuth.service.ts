@@ -32,7 +32,7 @@ export class OAuthService {
 	parseKakaoProfile(profile: any): ParsedProfile {
 		return {
 			userId: `kakao_${profile.id}`,
-			email: profile.kakao_account?.email || null,
+			email: profile._json?.kakao_account?.email || null,
 			username: profile._json?.kakao_account?.profile?.nickname,
 		}
 	}
@@ -47,12 +47,18 @@ export class OAuthService {
 
 	@Transactional()
 	async findOrCreateOAuthMember(provider: string, parsedProfile: ParsedProfile) {
+    console.log('oAuthService findOrCreateOAuthMember');
 		try {
 			const { userId, email, username } = parsedProfile;
 
+      console.log('oAuthService findOrCreateOAuthMember2');
+
 			let member = await this.memberRepository.findOAuthMember(provider, userId);
 
+      console.log('oAuthService findOrCreateOAuthMember :: member : ', member);
+
 			if(!member) {
+        console.log('oAuthService findOrCreateOAuthMember :: member is null create Member');
 				member = await MemberMapper.toEntityByOAuth({
 					userId,
 					email: email!,
@@ -61,6 +67,9 @@ export class OAuthService {
 				});
 
 				const auth = AuthMapper.toEntityByMember(userId);
+
+        console.log('oAuthService findOrCreateOAuthMember :: member2 : ', member);
+        console.log('oAuthService findOrCreateOAuthMember :: auth : ', auth);
 
 				await this.memberRepository.save(member);
 				await this.authRepository.save(auth);
