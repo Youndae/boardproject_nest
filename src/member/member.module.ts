@@ -6,13 +6,21 @@ import { MemberRepository } from './repositories/member.repository';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Member } from '#member/entities/member.entity';
 import { Auth } from '#member/entities/auth.entity';
+import { FileModule } from '#common/services/file.module';
+import { LoggerModule } from '#config/logger/logger.module';
+import { ConfigModule } from '@nestjs/config';
+import { GuardModule } from '#common/guards/guard.module';
 
 @Module({
 	imports: [
     TypeOrmModule.forFeature([
       Member,
       Auth
-    ])
+    ]),
+    FileModule,
+    LoggerModule,
+    ConfigModule,
+    GuardModule
   ],
 	controllers: [MemberController],
 	providers: [

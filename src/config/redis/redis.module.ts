@@ -13,13 +13,13 @@ export const REDIS_CLIENT = 'REDIS_CLIENT';
       provide: REDIS_CLIENT,
       inject: [ConfigService],
       useFactory: async (configService: ConfigService): Promise<RedisClientType> => {
-        const host = configService.get<string>('REDIS_HOST');
-        const port = configService.get<string>('REDIS_PORT');
+        const host = configService.get<string>('REDIS_HOST')??'';
+        const port: number = parseInt(configService.get<string>('REDIS_PORT')??'0');
 
         const client: RedisClientType = createClient({
           socket: {
-            host: 'localhost',
-            port: 6379,
+            host: host,
+            port: port,
             connectTimeout: 5000,
           }
         });

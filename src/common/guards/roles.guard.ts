@@ -1,15 +1,14 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { ForbiddenException } from '../exceptions/forbidden.exception';
 import { Reflector } from '@nestjs/core';
-import { AuthRepository } from '#member/repositories/auth.repository';
 import { ROLES_KEY } from '#common/decorators/roles.decorator';
 import { LoggerService } from '#config/logger/logger.service';
+import { RequestUserType } from '#common/types/requestUser.type';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly authRepository: AuthRepository,
     private readonly logger: LoggerService
   ) { }
 
@@ -27,19 +26,17 @@ export class RolesGuard implements CanActivate {
       return true;
 
     const req = ctx.switchToHttp().getRequest();
-    const user = req.user;
+    const user: RequestUserType | undefined = req.user;
 
-    if(!user || !user.userId) {
+    if(!user || !user.userId || !user.roles) {
       this.logger.error('AuthGuard :: Anonymous User Request.');
       throw new ForbiddenException();
     }
 
-    const userRoles: string[] = await this.authRepository.getMemberAuths(user.userId);
-
-    const hasRole = requiredRoles.some(role => userRoles.includes(role));
+    const hasRole = requiredRoles.some(role => user.roles.includes(role));
 
     if(!hasRole) {
-      this.logger.error('AuthGuard :: FORBIDDEN Role. ', { userId: user.userId, roles: userRoles });
+      this.logger.error('AuthGuard :: FORBIDDEN Role. ', { user });
       throw new ForbiddenException();
     }
 

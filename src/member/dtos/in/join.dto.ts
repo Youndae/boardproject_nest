@@ -20,6 +20,7 @@ export class JoinDTO {
 
   @IsOptional()
   @IsString()
+  @Length(2, 20)
   nickName?: string;
 
   @IsNotEmpty()

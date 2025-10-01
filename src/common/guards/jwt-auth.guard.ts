@@ -5,13 +5,16 @@ import { LoggerService } from '#config/logger/logger.service';
 import { TokenInvalidException } from '#common/exceptions/token-invalid.exception';
 import { ResponseStatusConstants } from '#common/constants/response-status.constants';
 import { TokenStealingException } from '#common/exceptions/token-stealing.exception';
+import { AuthRepository } from '#member/repositories/auth.repository';
+import { UnauthorizedException } from '#common/exceptions/unauthorized.exception';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(
     private readonly tokenProvider: JWTTokenProvider,
     private readonly configService: ConfigService,
-    private readonly logger: LoggerService
+    private readonly logger: LoggerService,
+    private readonly authRepository: AuthRepository,
   ) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
@@ -70,8 +73,18 @@ export class JwtAuthGuard implements CanActivate {
       throw error;
     }
 
-	if(username)
-    	request.user = { userId: username }
+	if(username){
+    const auths: string[] = await this.authRepository.getMemberAuths(username);
+
+    if(auths.length === 0)
+      throw new UnauthorizedException();
+
+    request.user = {
+      userId: username,
+      roles: auths
+    }
+  }
+
 	
     return true;
   }

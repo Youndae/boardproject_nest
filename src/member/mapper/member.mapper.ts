@@ -1,7 +1,7 @@
 import { Member } from "#member/entities/member.entity";
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcrypt';
-import { JoinDTO } from "#member/dtos/join.dto";
+import { JoinDTO } from "#member/dtos/in/join.dto";
 
 export class MemberMapper {
 	static async toEntityByOAuth({
@@ -21,11 +21,14 @@ export class MemberMapper {
 		member.userName = userName;
 		member.email = email;
 		member.provider = provider;
-		
+
 		return member;
 	}
 
-	static async toEntityByJoinDTO(joinDTO: JoinDTO, profileThumbnail?: string) {
+	static async toEntityByJoinDTO(
+    joinDTO: JoinDTO,
+    profileThumbnail: { imageName: string, originName: string } | undefined
+  ) {
 		const member = new Member();
 
 		member.userId = joinDTO.userId;
@@ -34,8 +37,8 @@ export class MemberMapper {
 		member.nickName = joinDTO.nickName || null;
 		member.email = joinDTO.email;
 		member.provider = 'local';
-		member.profileThumbnail = `profile/${profileThumbnail}` || null;
-		
+		member.profileThumbnail = `profile/${profileThumbnail?.imageName}` || null;
+
 		return member;
 	}
 }
