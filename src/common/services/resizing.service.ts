@@ -16,7 +16,7 @@ export class ResizingService {
 
 		await this.resizeImage(filepath, 300, resizedPath);
 
-		this.fileService.deleteFile(filepath);
+		await this.fileService.deleteFile(filepath);
 
 		return { resizedFilename: resizedName };
 	}

@@ -20,6 +20,7 @@ import { RolesGuard } from '#common/guards/roles.guard';
 import { PatchProfileDTO } from '#member/dtos/in/patchProfile.dto';
 import { MemberService } from '#member/services/member.service';
 import { ProfileResponseDTO } from '#member/dtos/out/profileResponse.dto';
+import { RequestUserType } from '#common/types/requestUser.type';
 
 @Controller('member')
 export class MemberController {
@@ -69,26 +70,6 @@ export class MemberController {
   @HttpCode(201)
   async register(@Body() joinDTO: JoinDTO, @Req() req: Request): Promise<void> {
 
-	/*
-		서비스 호출
-		this.memberService.register(joinDTO, req.file);
-
-		서비스 에서는 회원가입 데이터 처리 전
-
-		let profileThumbnail: { imageName: string, originName: string } | undefined;
-		if(req.file) {
-			const destDir = this.configService.get<string>('PROFILE_FILE_PATH');
-			const { filename: storedFilename, originalname: originName } = req.file;
-			const { resizedFilename } = await this.resizing.resizeProfileImage(destDir, storedFilename);
-			profileThumbnail = { imageName: resizedFilename, originName };
-		}
-
-		JoinDTO Entity화 이후
-		Repository 호출해서 데이터 저장.
-
-		전체 트랜잭션으로 묶어주고 실패시 catch에서 파일 제거
-	*/
-
     await this.memberService.register(joinDTO, req);
   }
 
@@ -104,7 +85,7 @@ export class MemberController {
    * }
    *
    * @returns {
-   *   isExist: boolean
+   *   isExists: boolean
    * }
    */
   // @UseGuards(AnonymousGuard)
@@ -129,18 +110,18 @@ export class MemberController {
    * }
    *
    * @returns {
-   *   isExitst: boolean
+   *   isExists: boolean
    * }
    */
   @Get('/check-nickname')
   @HttpCode(200)
   async checkNickname(@Query('nickname') nickname: string, @Req() req: Request): Promise<any> {
-    const member = req.user as { userId: string };
-    const userId: string | undefined = member.userId ?? undefined;
+    const member = req.user as RequestUserType;
+    const userId: string | undefined = member?.userId;
 
     const result: boolean = await this.memberService.checkNickname(nickname, userId);
 
-    return { isExists: result};
+    return { isExists: result };
   }
 
   /**
@@ -157,7 +138,10 @@ export class MemberController {
    *
    * @Param {
    *   profileImage?: Multipart,
-   *   user: { userId: string }
+   *   user: {
+   *    userId: string,
+   *    roles: string[],
+   *   }
    * } req
    *
    * @return void
@@ -178,6 +162,13 @@ export class MemberController {
    * GET
    * 정보 수정을 위한 데이터 조회
    *
+   * @Param {
+   *   user: {
+   *     userId: string,
+   *     roles: string[],
+   *   }
+   * } req
+   *
    * @returns {
    *   nickname: string,
    *   profileImage: string | null
@@ -188,7 +179,7 @@ export class MemberController {
   @Get('/profile')
   @HttpCode(200)
   async getProfile(@Req() req: Request): Promise<ProfileResponseDTO> {
-    const member = req.user as { userId: string };
+    const member = req.user as RequestUserType;
 
     return await this.memberService.getProfile(member.userId);
   }

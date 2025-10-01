@@ -12,6 +12,10 @@ import { AuthMapper } from '#member/mapper/auth.mapper';
 import { Member } from '#member/entities/member.entity';
 import { Auth } from '#member/entities/auth.entity';
 import { FileService } from '#common/services/file.service';
+import { LoggerService } from '#config/logger/logger.service';
+import { RequestUserType } from '#common/types/requestUser.type';
+import { ForbiddenException } from '#common/exceptions/forbidden.exception';
+import { ProfileResponseDTO } from '#member/dtos/out/profileResponse.dto';
 
 @Injectable()
 export class MemberService {
@@ -21,6 +25,7 @@ export class MemberService {
     private readonly configService: ConfigService,
     private readonly resizing: ResizingService,
     private readonly fileService: FileService,
+    private readonly logger: LoggerService,
   ) {}
 
   /**
@@ -32,24 +37,44 @@ export class MemberService {
    */
   @Transactional()
   async register(joinDTO: JoinDTO, req: Request): Promise<void> {
-    //TODO: let profileThumbnail: { imageName: string, originName: string } | undefined;
     let profileThumbnail: { imageName: string, originName: string } | undefined;
     const destDir: string = this.configService.get<string>('PROFILE_FILE_PATH') ?? '';
-    if(req.file) {
-      const { filename: storedFilename } = req.file;
-      const { resizedFilename } = await this.resizing.resizeProfileImage(destDir, storedFilename);
-      profileThumbnail = { imageName: resizedFilename, originName: storedFilename };
+
+    try {
+      if(req.file) {
+        const { filename: storedFilename } = req.file;
+        const { resizedFilename } = await this.resizing.resizeProfileImage(destDir, storedFilename);
+        profileThumbnail = { imageName: resizedFilename, originName: storedFilename };
+        this.logger.info('memberService :: save register profileThumbnail. ', profileThumbnail);
+      }
+
+      const saveMember: Member = await MemberMapper.toEntityByJoinDTO(joinDTO, profileThumbnail);
+      const saveAuth: Auth = AuthMapper.toEntityByMember(joinDTO.userId);
+
+      await this.memberRepository.save(saveMember);
+      await this.authRepository.save(saveAuth);
+
+      this.logger.info('memberService :: register member. userId : ', saveMember.userId);
+    }catch (error) {
+      this.logger.error('memberService :: register Error. ', error);
+      if(profileThumbnail) {
+        this.logger.error('memberService :: register profileThumbnail delete. ', profileThumbnail);
+        await this.fileService.deleteFile(`${destDir}/${profileThumbnail.imageName}`);
+        await this.fileService.deleteFile(`${destDir}/${profileThumbnail.originName}`);
+      }
+
+      throw error;
     }
 
-    const saveMember: Member = await MemberMapper.toEntityByJoinDTO(joinDTO, profileThumbnail);
-    const saveAuth: Auth = AuthMapper.toEntityByMember(joinDTO.userId);
-
-    await this.memberRepository.save(saveMember);
-    await this.authRepository.save(saveAuth);
-
-    if(profileThumbnail)
-      await this.fileService.deleteFile(`${destDir}/${profileThumbnail.originName}`);
-
+    try {
+      if(profileThumbnail) {
+        await this.fileService.deleteFile(`${destDir}/${profileThumbnail.originName}`);
+        this.logger.info('memberService :: delete register original profileThumbnail File');
+      }
+    }catch (error) {
+      this.logger.error('memberService :: delete register original ProfileThumbnail File error.', error);
+      this.logger.error('memberService :: delete register original ProfileThumbnail name : ', profileThumbnail?.originName);
+    }
   }
 
   /**
@@ -59,10 +84,9 @@ export class MemberService {
    * @return boolean ( true: duplicate )
    */
   async checkId(userId: string): Promise<boolean> {
-    //TODO: memberRepository.findById(userId);
-    //TODO: if(member) true else false
+    const checkIdResult: string | null = await this.memberRepository.findUserId(userId);
 
-    return false;
+    return checkIdResult !== null;
   }
 
   /**
@@ -72,9 +96,11 @@ export class MemberService {
    *
    * @return boolean ( true: duplicate )
    */
-  async checkNickname(nickname: string, userId: string): Promise<boolean> {
-    //TODO: memberRepository.findByNickname(nickname);
-    //TODO: if(member) if(member.userId === userId) return false else return true
+  async checkNickname(nickname: string, userId: string | undefined): Promise<boolean> {
+    const member: Member | null = await this.memberRepository.findOne({ where: { nickName: nickname }});
+
+    if(member)
+      return member.userId !== userId;
 
     return false;
   }
@@ -86,16 +112,51 @@ export class MemberService {
    *
    * @return void
    */
+  @Transactional()
   async patchProfile(patchProfileDTO: PatchProfileDTO, req: Request): Promise<void> {
-    //TODO: let profileThumbnail: { imageName: string, originName: string } | undefined;
-    //TODO: if req.file resize
+    let profileThumbnail: { imageName: string, originName: string } | undefined;
+    const destDir: string = this.configService.get<string>('PROFILE_FILE_PATH') ?? '';
 
-    //TODO: const userId = req.user.userId
-    //TODO: const member = memberRepository.findById();
-    //TODO: const patchMember = member nickname, profileImage patch
-    //TODO: memberRepository.save(patchMember);
+    try {
+      if(req.file) {
+        const { filename: storedFilename } = req.file;
+        const { resizedFilename } = await this.resizing.resizeProfileImage(destDir, storedFilename);
+        profileThumbnail = { imageName: resizedFilename, originName: storedFilename };
+        this.logger.info('memberService :: patch profile new profileThumbnail. ', profileThumbnail);
+      }
 
-    //TODO: if(deleteProfile) fileService.deleteFile(deleteProfile);
+      const userId: string = (req.user as RequestUserType).userId;
+
+      const member: Member | null = await this.memberRepository.findOne({ where: { userId }});
+
+      if(!member){
+        this.logger.error('memberService :: patch profile Member is Null. userId : ', userId);
+        throw new ForbiddenException();
+      }
+
+      member.nickName = patchProfileDTO.nickname ?? null;
+      member.profileThumbnail = `profile/${profileThumbnail?.imageName ?? null}`;
+
+      await this.memberRepository.save(member);
+
+      try {
+        if(patchProfileDTO.deleteProfile)
+          await this.fileService.deleteFile(`${destDir}/${patchProfileDTO.deleteProfile}`);
+      }catch (error) {
+        this.logger.error('memberService :: patch profile deleteProfile Fail. filename : ', patchProfileDTO.deleteProfile);
+      }
+
+    }catch(error) {
+      this.logger.error('memberService :: patch profile error. ', error);
+
+      if(profileThumbnail) {
+        this.logger.error('memberService :: patch profile delete new profileThumbnail. ', profileThumbnail);
+        await this.fileService.deleteFile(`${destDir}/${profileThumbnail.imageName}`);
+        await this.fileService.deleteFile(`${destDir}/${profileThumbnail.originName}`);
+      }
+
+      throw error;
+    }
   }
 
   /**
@@ -107,11 +168,8 @@ export class MemberService {
    *   profileImage: string | null
    * }
    */
-  async getProfile(userId: string): Promise<any> {
-    //TODO: memberRepository.findById(userId);
+  async getProfile(userId: string): Promise<ProfileResponseDTO> {
 
-    //TODO: return { nickname, profileImage };
-
-    return null;
+    return this.memberRepository.findMemberProfileByUserId(userId);
   }
 }

@@ -132,3 +132,21 @@ REST API 구조로 프론트엔드 재활용을 통해 Nest만 집중한 경험 
 > 로그인, oAuth 브라우저 테스트
 > member 기능 구현 및 테스트 작성
 > imageBoard -> board -> comment 순서로 진행
+
+<br/>
+
+## 25/09/30
+> Member Module Controller, Service 메서드 및 DI 추가.   
+> 서버 실행 시 crash 발생.  
+
+<br/>
+
+## 25/10/01
+> 문제 원인 파악.   
+>> 인증 / 인가 및 권한 제어를 Guard로 처리하고 있는데 그 중 권한 제어를 위한 RolesGuard가 문제.   
+>> 인증 / 인가를 처리하는 JwtAuthGuard의 부담을 줄이고자 권한 조회는 RolesGuard에게 넘겼었는데, 그러다보니 RolesGuard가 AuthRepository를 주입받아야 하는 상황이 발생.   
+>> 근데 Member Module 역시 Controller에서 권한 제어를 위해 RolesGuard를 주입 받아야 하게 되면서 순환 참조 발생으로 인해 서버가 crash.   
+>> 이 문제 해결에 대해 고민해봤으나 Member Module에서 RolesGuard를 무조건 참조할 수 밖에 없는 상황에서 참조에 대한 타협이 불가능한 것으로 판단.   
+>> Global로 APP_GUARD로 설정된 JwtAuthGuard는 다른 모듈이 참조할 이유가 없기 때문에 JwtAuthGuard에서 권한 조회까지 수행 후 req.user에 roles로 권한 배열을 담도록 수정.   
+> MemberController, MemberService, MemberRepository 전체 구현.   
+> 파일 업로드 브라우저 테스트 확인.

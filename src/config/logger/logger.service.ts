@@ -92,8 +92,8 @@ export class LoggerService {
     );
   }
 
-  info(message: string, context?: string) {
-    this.logger.info(message, { context });
+  info(message: string, meta?: any, context?: string) {
+    this.logger.info(message, meta, { context });
   }
 
   error(message: string, meta?: any, context?: string) {
