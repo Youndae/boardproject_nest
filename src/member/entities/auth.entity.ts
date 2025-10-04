@@ -12,7 +12,11 @@ export class Auth extends BaseEntity {
   @Column({ type: 'varchar', length: 20, nullable: false })
   auth: string;
 
-  @ManyToOne(() => Member)
+  @ManyToOne(() => Member, {
+    onDelete: "CASCADE",
+    onUpdate: "CASCADE",
+    nullable: false
+  })
   @JoinColumn({ name: 'userId', referencedColumnName: 'userId' })
   member: Member;
 }

@@ -65,16 +65,6 @@ export class MemberService {
 
       throw error;
     }
-
-    try {
-      if(profileThumbnail) {
-        await this.fileService.deleteFile(`${destDir}/${profileThumbnail.originName}`);
-        this.logger.info('memberService :: delete register original profileThumbnail File');
-      }
-    }catch (error) {
-      this.logger.error('memberService :: delete register original ProfileThumbnail File error.', error);
-      this.logger.error('memberService :: delete register original ProfileThumbnail name : ', profileThumbnail?.originName);
-    }
   }
 
   /**
@@ -134,14 +124,23 @@ export class MemberService {
         throw new ForbiddenException();
       }
 
+      // 새로 등록하는 프로필 이미지는 있는데 deleteProfile이 비어있고
+      // 조회한 member.profileThumbnail은 존재하는 경우
+      // deleteProfile에 member.profileThumbnail을 set해서 기존 파일을 제거 할 수 있도록 셋팅
+      if(req.file && !patchProfileDTO.deleteProfile && member.profileThumbnail)
+        patchProfileDTO.setDeleteProfile(member.profileThumbnail);
+
       member.nickName = patchProfileDTO.nickname ?? null;
-      member.profileThumbnail = `profile/${profileThumbnail?.imageName ?? null}`;
+      member.profileThumbnail = profileThumbnail ? `profile/${profileThumbnail?.imageName}` : null;
 
       await this.memberRepository.save(member);
 
       try {
-        if(patchProfileDTO.deleteProfile)
-          await this.fileService.deleteFile(`${destDir}/${patchProfileDTO.deleteProfile}`);
+        if(patchProfileDTO.deleteProfile){
+          const deleteFileNameSlice: string = patchProfileDTO.deleteProfile.replace('profile/', '');
+          await this.fileService.deleteFile(`${destDir}/${deleteFileNameSlice}`);
+        }
+
       }catch (error) {
         this.logger.error('memberService :: patch profile deleteProfile Fail. filename : ', patchProfileDTO.deleteProfile);
       }

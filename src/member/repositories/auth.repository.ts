@@ -10,7 +10,7 @@ export class AuthRepository extends Repository<Auth> {
 
   async getMemberAuths(userId: string): Promise<string[]> {
     const result = await this.createQueryBuilder('auth')
-      .select('auth.auth')
+      .select('auth.auth AS auth')
       .where('auth.userId = :userId', { userId })
       .getRawMany();
 

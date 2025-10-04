@@ -150,3 +150,41 @@ REST API 구조로 프론트엔드 재활용을 통해 Nest만 집중한 경험 
 >> Global로 APP_GUARD로 설정된 JwtAuthGuard는 다른 모듈이 참조할 이유가 없기 때문에 JwtAuthGuard에서 권한 조회까지 수행 후 req.user에 roles로 권한 배열을 담도록 수정.   
 > MemberController, MemberService, MemberRepository 전체 구현.   
 > 파일 업로드 브라우저 테스트 확인.
+
+<br/>
+
+## 25/10/02 ~ 25/10/03
+> Repository 테스트 코드 작성 중 문제 발생.   
+>> 1. jest에서 path alias 인식 불가 문제
+>>> tsconfig.json에 명시되어 있기 때문에 이걸로 될 줄 알았으나 불가능.   
+>>> Cursor에 문제 제시 후 예제 코드를 본 결과 jest.config.js로 분리된 설정이 필요하다고 해서 체크했으나 실패.   
+>>> 여러 설정을 계속 변경해가며 체크해봤으나 인식 불가.   
+>>> 결국 10/2에 문제 해결하지 못하고 마무리.   
+>>> 10/3일에 블로그 검색 시작.   
+>>> 여러 포스팅을 보면서 상황에 맞게 조합하며 테스트.   
+>>> jest.config.js를 제거하고 package.json의 "jest"에 추가 작성하는 것으로 최종 문제 해결.   
+>>> 주의사항으로 rootDir에 test 파일 인식을 위해 test로 잡아두었기 때문에 moduleNameMapper의 <rootDir> 은 test 디렉토리임을 인지해야 함.   
+>> 2. uuid 인식 불가 문제
+>>> jest가 uuid import를 제대로 인식하지 못하는 문제.   
+>>> Must use import to load ES Module 이라는 로그가 계속 발생.   
+>>> uuid 버전은 11 버전.   
+>>> 이 문제는 uuid 11 버전이 순수 ESM 환경이기 때문에 Nest와 같은 CJS 환경에서는 Jest가 제대로 변환하지 못하는 문제.   
+>>> Express에서는 잘 사용했는데? 싶었지만 Express에서도 type: module을 통해 ESM 환경으로 전환했기에 사용이 가능했던 것.   
+>>> Nest 자체에서는 문제가 없지만 완전한 CJS 환경인 Jest에서는 문제가 발생하는 것.   
+>>> Jest를 ESM으로 transform 하면 된다는 얘기도 있었는데 이것저것 시도해봤지만 해결 실패.   
+>>> 결국 uuidv7으로 버전을 수정하는 것으로 문제 해결.   
+>>> uuid 사용 목적이 단순히 v4를 통해 난수 생성하는것에 목적이 있었고, uuidv7에서 취약점도 없었기 때문에 문제가 없을거라고 판단.   
+>>> 문제는 앞으로 Nest를 하면서 이런 순수 ESM 패키지를 만났을 때 어떻게 할 것이냐가 문제.   
+>>> 아직까지는 마땅한 해결책이 보이지 않아서 걱정..
+> member.repository.spec.ts에서 임시 테스트 통과.
+
+<br/>
+
+## 25/10/04
+> MemberRepository, AuthRepository, MemberService 통합 테스트   
+> Nest + Jest 환경에서의 @Transactional() Decorator 문제 발생.
+>> @Transactional()이 정의되어 있는 메서드에 대한 단위 테스트가 불가능하다고 함.   
+>> typeorm-transactional 패키지가 CLS 기반으로 TransactionContext를 요구하기 때문에 단위 테스트에서도 반드시 initializeTransactionalContext()와 addTransactionalDataSources()가 필요하기 때문.   
+>> 이 둘을 띄우게 되면 단위 테스트가 아니라 통합 테스트가 되기 때문에 무시하고 테스트하는게 불가능하다고 함.   
+>> 그래서 다른 memberService 메서드들은 단위 테스트를 해야할 만큼의 로직이 없기 때문에 memberService의 단위 테스트를 생략.   
+>> 단위 테스트를 수행하지 않기 때문에 예외 발생시 롤백 등의 검증은 통합 테스트에서 부분 mocking을 통해 처리.

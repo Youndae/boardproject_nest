@@ -19,7 +19,7 @@ import { addTransactionalDataSource } from 'typeorm-transactional';
         database: configService.get<string>('DB_NAME'),
         autoLoadEntities: true,
         synchronize: configService.get<string>('NODE_ENV') === 'test',
-        logging: configService.get<string>('NODE_ENV') !== 'production',
+        // logging: configService.get<string>('NODE_ENV') !== 'production',
       }),
       dataSourceFactory: async (options: DataSourceOptions) => {
         const dataSource = new DataSource(options);

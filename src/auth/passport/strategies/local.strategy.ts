@@ -20,15 +20,11 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
     try {
       const member = await this.memberRepository.findMemberByUserIdFromLocal(userId);
 
-      console.log('passport local member : ', member);
-
       if(!member){
         return null;
       }
 
       const isMatch = await bcrypt.compare(userPw, member.userPw);
-
-      console.log('passport local pw match result : ', isMatch);
 
       if(!isMatch){
         return null;

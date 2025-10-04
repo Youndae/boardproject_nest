@@ -37,7 +37,7 @@ export class MemberMapper {
 		member.nickName = joinDTO.nickName || null;
 		member.email = joinDTO.email;
 		member.provider = 'local';
-		member.profileThumbnail = `profile/${profileThumbnail?.imageName}` || null;
+		member.profileThumbnail = profileThumbnail ? `profile/${profileThumbnail.imageName}` : null;
 
 		return member;
 	}
