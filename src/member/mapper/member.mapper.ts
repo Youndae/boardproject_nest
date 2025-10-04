@@ -1,5 +1,5 @@
 import { Member } from "#member/entities/member.entity";
-import { v4 as uuidv4 } from 'uuid';
+import { uuidv4 } from 'uuidv7';
 import bcrypt from 'bcrypt';
 import { JoinDTO } from "#member/dtos/in/join.dto";
 

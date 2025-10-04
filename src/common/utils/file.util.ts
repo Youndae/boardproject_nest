@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { v4 as uuidv4 } from 'uuid';
+import { uuidv4 } from 'uuidv7';
 import path from 'path';
 
 export function generateStoredFilename(originalName: string): string {

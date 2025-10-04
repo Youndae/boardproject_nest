@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { MemberRepository } from "#member/repositories/member.repository";
 import { AuthRepository } from "#member/repositories/auth.repository";
 import { LoggerService } from "#config/logger/logger.service";
-import { v4 as uuidv4 } from 'uuid';
+import { uuidv4 } from 'uuidv7';
 import { Transactional } from "typeorm-transactional";
 import { MemberMapper } from "#member/mapper/member.mapper";
 import { AuthMapper } from "#member/mapper/auth.mapper";

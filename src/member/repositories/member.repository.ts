@@ -1,7 +1,7 @@
 import { DataSource, Repository } from 'typeorm';
-import { Member } from '#member/entities/member.entity';
 import { Injectable } from '@nestjs/common';
 import { ProfileResponseDTO } from '#member/dtos/out/profileResponse.dto';
+import { Member } from '#member/entities/member.entity';
 
 @Injectable()
 export class MemberRepository extends Repository<Member> {
@@ -19,6 +19,8 @@ export class MemberRepository extends Repository<Member> {
   }
 
   async findOAuthMember(provider: string, userId: string): Promise<Member | null> {
+    if(provider === 'local') return null;
+
     const result: Member | null = await this.findOne({
       where: { userId, provider },
       select: ['userId']

@@ -3,7 +3,6 @@ import { ensureDir, pathExists } from 'fs-extra';
 import type { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { generateStoredFilename, imageMimes } from '#common/utils/file.util';
-import { ResponseStatusConstants } from '#common/constants/response-status.constants';
 
 export type UploadRequestType = 'profile' | 'board';
 

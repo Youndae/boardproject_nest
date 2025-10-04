@@ -1,6 +1,6 @@
 import { JwtService, JsonWebTokenError, TokenExpiredError, JwtSignOptions } from '@nestjs/jwt';
 import { Response } from 'express';
-import { v4 as uuidv4} from 'uuid';
+import { uuidv4 } from 'uuidv7';
 import { ConfigService } from '@nestjs/config';
 import { LoggerService } from '#config/logger/logger.service';
 import { RedisService } from '#common/services/redis.service';
