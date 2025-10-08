@@ -277,8 +277,8 @@ describe('member.service Integration', () => {
   describe('patchProfile', () => {
     const resizedFilename: string = 'resizedNewProfile.png';
 
-    it('프로필 이미지와 nickname 모두 null로 요청된 경우', async () => {
-      const patchProfile: PatchProfileDTO = new PatchProfileDTO(undefined, undefined);
+    it('프로필 이미지는 undefined, nickname은 blank로 요청된 경우', async () => {
+      const patchProfile: PatchProfileDTO = new PatchProfileDTO('', undefined);
       const patchReq: any = {
         user: {
           userId: saveMember.userId,
@@ -294,7 +294,7 @@ describe('member.service Integration', () => {
       const patchMember: Member | null = await memberRepository.findOne({ where: { userId: saveMember.userId } });
 
       expect(patchMember?.nickName).toBeNull();
-      expect(patchMember?.profileThumbnail).toBeNull();
+      expect(patchMember?.profileThumbnail).toBe(saveMember.profileThumbnail);
     });
 
     it('프로필 이미지와 기존 이미지명, nickname 모두 포함해서 요청하는 경우', async () => {

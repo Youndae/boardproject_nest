@@ -29,7 +29,7 @@ export const REDIS_CLIENT = 'REDIS_CLIENT';
         });
 
         client.on('connect', () => {
-          console.error('Redis Client Connected');
+          console.log('Redis Client Connected');
         });
 
         try {

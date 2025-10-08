@@ -1,15 +1,14 @@
 import { IsOptional, IsString, Length } from 'class-validator';
 
 export class PatchProfileDTO {
-  constructor(nickname?: string, deleteProfile?: string) {
+  //test용 constructor
+  constructor(nickname: string, deleteProfile: string | undefined) {
     this.nickname = nickname;
     this.deleteProfile = deleteProfile;
   }
 
-  @IsOptional()
   @IsString()
-  @Length(2, 20)
-  nickname?: string;
+  nickname: string;
 
   @IsOptional()
   @IsString()

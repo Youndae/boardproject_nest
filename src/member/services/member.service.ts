@@ -16,6 +16,7 @@ import { LoggerService } from '#config/logger/logger.service';
 import { RequestUserType } from '#common/types/requestUser.type';
 import { ForbiddenException } from '#common/exceptions/forbidden.exception';
 import { ProfileResponseDTO } from '#member/dtos/out/profileResponse.dto';
+import { BadRequestException } from '#common/exceptions/badRequest.exception';
 
 @Injectable()
 export class MemberService {
@@ -50,6 +51,11 @@ export class MemberService {
 
       const saveMember: Member = await MemberMapper.toEntityByJoinDTO(joinDTO, profileThumbnail);
       const saveAuth: Auth = AuthMapper.toEntityByMember(joinDTO.userId);
+
+      const memberExists: boolean = await this.memberRepository.findOne({ where: { userId: saveMember.userId } }) !== null;
+
+      if(memberExists)
+        throw new BadRequestException();
 
       await this.memberRepository.save(saveMember);
       await this.authRepository.save(saveAuth);
@@ -130,8 +136,11 @@ export class MemberService {
       if(req.file && !patchProfileDTO.deleteProfile && member.profileThumbnail)
         patchProfileDTO.setDeleteProfile(member.profileThumbnail);
 
-      member.nickName = patchProfileDTO.nickname ?? null;
-      member.profileThumbnail = profileThumbnail ? `profile/${profileThumbnail?.imageName}` : null;
+      if(patchProfileDTO.deleteProfile)
+        member.profileThumbnail = null;
+
+      member.nickName = patchProfileDTO.nickname === '' ? null : patchProfileDTO.nickname;
+      member.profileThumbnail = profileThumbnail ? `profile/${profileThumbnail?.imageName}` : member.profileThumbnail;
 
       await this.memberRepository.save(member);
 

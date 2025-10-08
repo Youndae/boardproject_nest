@@ -188,3 +188,9 @@ REST API 구조로 프론트엔드 재활용을 통해 Nest만 집중한 경험 
 >> 이 둘을 띄우게 되면 단위 테스트가 아니라 통합 테스트가 되기 때문에 무시하고 테스트하는게 불가능하다고 함.   
 >> 그래서 다른 memberService 메서드들은 단위 테스트를 해야할 만큼의 로직이 없기 때문에 memberService의 단위 테스트를 생략.   
 >> 단위 테스트를 수행하지 않기 때문에 예외 발생시 롤백 등의 검증은 통합 테스트에서 부분 mocking을 통해 처리.
+
+<br/>
+
+## 25/10/08
+> Member Controller E2E 테스트   
+> Sharp, FileService Mocking 후 테스트.

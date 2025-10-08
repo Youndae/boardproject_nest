@@ -8,6 +8,7 @@ import { RedisModule } from '#config/redis/redis.module';
 import { LoggerModule } from '#config/logger/logger.module';
 import { RedisServiceModule } from '#common/services/redisService.module';
 import { OAuthGuardModule } from '#common/guards/oAuthGuard.module';
+import { PassportModule } from '@nestjs/passport';
 
 @Module({
 	imports: [

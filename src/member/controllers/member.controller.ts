@@ -21,6 +21,9 @@ import { PatchProfileDTO } from '#member/dtos/in/patchProfile.dto';
 import { MemberService } from '#member/services/member.service';
 import { ProfileResponseDTO } from '#member/dtos/out/profileResponse.dto';
 import { RequestUserType } from '#common/types/requestUser.type';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { BadRequestException } from '#common/exceptions/badRequest.exception';
 
 @Controller('member')
 export class MemberController {
@@ -68,7 +71,12 @@ export class MemberController {
   @Post('/join')
   @UseInterceptors(ProfileUploadInterceptor)
   @HttpCode(201)
-  async register(@Body() joinDTO: JoinDTO, @Req() req: Request): Promise<void> {
+  async register(@Body() joinBody: any, @Req() req: Request): Promise<void> {
+    const joinDTO = plainToInstance(JoinDTO, joinBody);
+
+    const validateErrors = await validate(joinDTO);
+    if(validateErrors.length > 0)
+      throw new BadRequestException();
 
     await this.memberService.register(joinDTO, req);
   }
@@ -88,10 +96,13 @@ export class MemberController {
    *   isExists: boolean
    * }
    */
-  // @UseGuards(AnonymousGuard)
+  @UseGuards(AnonymousGuard)
   @Get('/check-id')
   @HttpCode(200)
   async checkId(@Query('userId') userId: string): Promise<any> {
+    if(!userId || userId.trim() === '')
+      throw new BadRequestException();
+
     const result: boolean = await this.memberService.checkId(userId);
 
     return { isExists: result };
@@ -116,6 +127,10 @@ export class MemberController {
   @Get('/check-nickname')
   @HttpCode(200)
   async checkNickname(@Query('nickname') nickname: string, @Req() req: Request): Promise<any> {
+
+    if(!nickname || nickname.trim() === '')
+      throw new BadRequestException();
+
     const member = req.user as RequestUserType;
     const userId: string | undefined = member?.userId;
 
@@ -155,7 +170,14 @@ export class MemberController {
     @Body() patchProfileDTO: PatchProfileDTO,
     @Req() req: Request
   ): Promise<void> {
-    await this.memberService.patchProfile(patchProfileDTO, req);
+
+    const patchDTO: PatchProfileDTO = plainToInstance(PatchProfileDTO, patchProfileDTO);
+
+    const validateErrors = await validate(patchDTO);
+    if(validateErrors.length > 0)
+      throw new BadRequestException();
+
+    await this.memberService.patchProfile(patchDTO, req);
   }
 
   /**
@@ -170,8 +192,8 @@ export class MemberController {
    * } req
    *
    * @returns {
-   *   nickname: string,
-   *   profileImage: string | null
+   *   nickName: string | null,
+   *   profileThumbnail: string | null
    * } ProfileResponseDTO
    */
   @Roles('ROLE_MEMBER')

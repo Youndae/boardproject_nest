@@ -11,18 +11,18 @@ import { ConfigModule } from '@nestjs/config';
 
 @Module({
 	imports: [
-    PassportModule,
+    PassportModule.register({ defaultStrategy: 'jwt' }),
     MemberModule,
     LoggerModule,
     ConfigModule
   ],
 	providers: [
-		LocalStrategy,
-		GoogleStrategy,
-		KakaoStrategy,
-		NaverStrategy,
-		OAuthService
-	],
+    LocalStrategy,
+    GoogleStrategy,
+    KakaoStrategy,
+    NaverStrategy,
+    OAuthService
+  ],
 	exports: [PassportModule],
 })
 export class PassportConfigModule {}
