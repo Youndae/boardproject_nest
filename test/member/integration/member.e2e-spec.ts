@@ -18,7 +18,6 @@ import cookieParser from 'cookie-parser';
 import { MemberRepository } from '#member/repositories/member.repository';
 import { AuthRepository } from '#member/repositories/auth.repository';
 import { DataSource } from 'typeorm';
-import { ResizingService } from '#common/services/resizing.service';
 import { FileService } from '#common/services/file.service';
 import { ConfigService } from '@nestjs/config';
 import { Member } from '#member/entities/member.entity';
