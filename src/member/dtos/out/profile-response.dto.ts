@@ -1,4 +1,4 @@
-export class ProfileResponseDTO {
+export class ProfileResponseDto {
   nickName: string | null;
   profileThumbnail: string | null;
 

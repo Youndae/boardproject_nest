@@ -1,6 +1,6 @@
 import { DataSource, Repository } from 'typeorm';
 import { Injectable } from '@nestjs/common';
-import { ProfileResponseDTO } from '#member/dtos/out/profileResponse.dto';
+import { ProfileResponseDto } from '#member/dtos/out/profile-response.dto';
 import { Member } from '#member/entities/member.entity';
 
 @Injectable()
@@ -38,7 +38,7 @@ export class MemberRepository extends Repository<Member> {
     return result?.userId ?? null;
   }
 
-  async findMemberProfileByUserId(userId: string): Promise<ProfileResponseDTO> {
+  async findMemberProfileByUserId(userId: string): Promise<ProfileResponseDto> {
     const result = await this.createQueryBuilder('member')
       .select([
         'member.nickName AS nickName',
@@ -47,7 +47,7 @@ export class MemberRepository extends Repository<Member> {
       .where('member.userId = :userId', { userId })
       .getRawOne<{ nickName: string; profileThumbnail: string }>();
 
-    return new ProfileResponseDTO(result?.nickName, result?.profileThumbnail);
+    return new ProfileResponseDto(result?.nickName, result?.profileThumbnail);
   }
   
 }

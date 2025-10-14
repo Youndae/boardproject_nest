@@ -17,9 +17,9 @@ import type { Request } from 'express';
 import { LoggerService } from '#src/config/logger/logger.service';
 import { Roles } from '#common/decorators/roles.decorator';
 import { RolesGuard } from '#common/guards/roles.guard';
-import { PatchProfileDTO } from '#member/dtos/in/patchProfile.dto';
+import { PatchProfileDto } from '#member/dtos/in/patch-profile.dto';
 import { MemberService } from '#member/services/member.service';
-import { ProfileResponseDTO } from '#member/dtos/out/profileResponse.dto';
+import { ProfileResponseDto } from '#member/dtos/out/profile-response.dto';
 import { RequestUserType } from '#common/types/requestUser.type';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
@@ -38,7 +38,7 @@ export class MemberController {
   @Get('/check-login')
   @HttpCode(200)
   @ApiOperation({ summary: '로그인 체크' })
-  @ApiResponse({ status: 200, description: '체크 완료', schema: { example: { loginStatus: true }, properties: { loginStatus: { type: 'boolean', description: '로그인 여부' }} }})
+  @ApiResponse({ description: '체크 완료', schema: { example: { loginStatus: true } }})
   checkUser(@Req() req: Request) {
 
     let loginStatus = false;
@@ -171,11 +171,11 @@ export class MemberController {
   @Patch('/profile')
   @HttpCode(200)
   async patchProfile(
-    @Body() patchProfileDTO: PatchProfileDTO,
+    @Body() patchProfileDTO: PatchProfileDto,
     @Req() req: Request
   ): Promise<void> {
 
-    const patchDTO: PatchProfileDTO = plainToInstance(PatchProfileDTO, patchProfileDTO);
+    const patchDTO: PatchProfileDto = plainToInstance(PatchProfileDto, patchProfileDTO);
 
     const validateErrors = await validate(patchDTO);
     if(validateErrors.length > 0)
@@ -204,7 +204,7 @@ export class MemberController {
   @UseGuards(RolesGuard)
   @Get('/profile')
   @HttpCode(200)
-  async getProfile(@Req() req: Request): Promise<ProfileResponseDTO> {
+  async getProfile(@Req() req: Request): Promise<ProfileResponseDto> {
     const member = req.user as RequestUserType;
 
     return await this.memberService.getProfile(member.userId);

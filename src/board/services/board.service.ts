@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BoardRepository } from '#board/repositories/board.repository';
 import { LoggerService } from '#config/logger/logger.service';
 import { Board } from '#board/entities/board.entity';
+import { PaginationDTO } from '#common/dtos/in/pagination.dto';
 
 @Injectable()
 export class BoardService {
@@ -16,7 +17,7 @@ export class BoardService {
    *   keyword?: string,
    *   searchType?: string,
    *   pageNum?: number = 1
-   * }
+   * } pageDTO
    *
    * @returns {
    *   content: BoardListResponseDTO[] [
@@ -32,8 +33,11 @@ export class BoardService {
    *   totalElements: number,
    * }
    */
-  async getListService({ keyword, searchType, pageNum = 1}: { keyword?: string, searchType?: string, pageNum?: number}): Promise<void> {
+  async getListService(pageDTO: PaginationDTO): Promise<void> {
+    // TODO: boardList: BoardListResponseDTO = repository.getBoardList(pageDTO);
+    // TODO: repository.getBoardTotalElements(pageDTO); || getBoardList(pageDTO)에서 같이 조회하고 객체로 반환
 
+    // TODO: return { content: boardList, empty: boardList.length !== 0, totalElements: totalElements }
   }
 
   /**
@@ -51,7 +55,9 @@ export class BoardService {
    * }
    */
   async getDetailService(boardNo: number): Promise<void> {
+    // TODO: boardDetail: BoardDetailDTO = repository.getBoardDetail(boardNo);
 
+    // TODO: return boardDetail
   }
 
   /**
@@ -67,12 +73,16 @@ export class BoardService {
    * }
    */
   async postBoardService(postBoardDTO: any, userId: string): Promise<void> {
+    // TODO: const saveBoard: Board = repository.create({ ... })
+    // TODO: const saveNo: number = repository.save(saveBoard).boardNo;
 
+    // TODO: return { boardNo: saveNo }
   }
 
   /**
    *
    * @param boardNo
+   * @param userId
    *
    * @returns {
    *   {
@@ -82,12 +92,15 @@ export class BoardService {
    *   } patchBoardResponseDTO
    * }
    */
-  async getBoardPatchDataService(boardNo: number): Promise<void> {
+  async getBoardPatchDataService(boardNo: number, userId: string): Promise<void> {
+    // TODO: const board: Board = this.checkWriter(boardNo, userId)
 
+    // TODO: return new PatchBoardResponseDTO(board);
   }
 
   /**
    *
+   * @param boardNo
    * @param {
    *   boardTitle: string,
    *   boardContent: string
@@ -98,8 +111,14 @@ export class BoardService {
    *   boardNo: number
    * }
    */
-  async patchBoardService(patchBoardDTO: any, userId: string): Promise<void> {
+  async patchBoardService(boardNo: number, patchBoardDTO: any, userId: string): Promise<void> {
+    // TODO: const patchBoard: Board = this.checkWriter(boardNo, userId);
 
+    // TODO: patchBoard.boardTitle = patchBoardDTO.boardTitle; patchBoard.boardContent = patchBoardDTO.boardContent;
+
+    // TODO: repository.save(patchBoard);
+
+    // TODO: return boardNo;
   }
 
   /**
@@ -110,7 +129,9 @@ export class BoardService {
    * @return void
    */
   async deleteBoardService(boardNo: number, userId: string): Promise<void> {
+    // TODO: this.checkWriter(boardNo, userId);
 
+    // TODO: repository.deleteOne({ where: { boardNo } });
   }
 
   /**
@@ -122,11 +143,13 @@ export class BoardService {
    *     boardGroupNo: number,
    *     boardUpperNo: string,
    *     boardIndent: number
-   *   } BoardReplyResponseDTO
+   *   } BoardReplyDataDTO
    * }
    */
   async getReplyPostDataService(boardNo: number): Promise<void> {
+    // TODO: const reply: BoardReplyDataDTO = repository.getReplyData(boardNo);
 
+    // TODO: return reply;
   }
 
   /**
@@ -146,7 +169,7 @@ export class BoardService {
    * }
    */
   async postBoardReplyService(replyDTO: any, userId: string): Promise<void> {
-
+    // TODO: return repository.postReply(replyDTO, userId);
   }
 
   /**
@@ -164,6 +187,11 @@ export class BoardService {
    * @exception 400 BAD_REQUEST
    */
   private async checkWriter(userId: string, boardNo: number): Promise<void> {
+    // TODO: const board: Board = repository.findOne({ where: { boardNo } });
 
+    // TODO: if(!board) throw new BadRequestException();
+    // TODO: if(board.userId !== userId) throw new AccessDeniedException();
+
+    // TODO: return board;
   }
 }

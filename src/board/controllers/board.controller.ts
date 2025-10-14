@@ -9,14 +9,46 @@ import {
   Post,
   Patch,
   Delete,
-  UseGuards, ValidationPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { BoardService } from '#board/services/board.service';
 import { Roles } from '#common/decorators/roles.decorator';
 import { RolesGuard } from '#common/guards/roles.guard';
 import type { Request } from 'express';
-import { PostBoardDTO } from '#board/dtos/in/postBoard.dto';
+import { PostBoardDto } from '#board/dtos/in/post-board.dto';
+import {
+  ApiBody,
+  ApiOkResponse, ApiOperation,
+  ApiParam,
+  ApiTags,
+  getSchemaPath,
+} from '@nestjs/swagger';
+import { createListResponseDTO } from '#common/dtos/out/list-response.dto';
+import { UserStatusDTO } from '#common/dtos/out/user-status.dto';
+import { createDetailResponseDTO } from '#common/dtos/out/detail-response.dto';
+import { BoardDetailResponseDTO } from '#board/dtos/out/board-detail-response.dto';
+import { ApiNoContentVoid } from '#common/decorators/swagger/no-content-void.decorator';
+import { CustomApiCreatedResponse } from '#common/decorators/swagger/created.decorator';
+import { ApiBoardExtraModels } from '#board/swagger/decorator/board-extra-models.decorator';
+import { BoardListResponseDTO } from '#board/dtos/out/board-list-response.dto';
+import { BoardPatchDetailResponseDTO } from '#board/dtos/out/board-patch-detail-response.dto';
+import { BoardReplyDataDTO } from '#board/dtos/out/board-reply-data.dto';
+import { PostReplyDTO } from '#board/dtos/in/post-reply.dto';
+import { ApiBearerCookie } from '#common/decorators/swagger/api-bearer-cookie.decorator';
+import { PaginationDTO } from '#common/dtos/in/pagination.dto';
 
+const ListResponseDTO = createListResponseDTO(BoardListResponseDTO, 'board');
+const DetailResponseDTO = createDetailResponseDTO(BoardDetailResponseDTO, 'boardDetail');
+const PatchDetailResponseDTO = createDetailResponseDTO(BoardPatchDetailResponseDTO,'patchDetail');
+const ReplyDataResponseDTO = createDetailResponseDTO(BoardReplyDataDTO, 'replyData');
+
+@ApiTags('Boards')
+@ApiBoardExtraModels(
+  ListResponseDTO,
+  DetailResponseDTO,
+  PatchDetailResponseDTO,
+  ReplyDataResponseDTO
+)
 @Controller('board')
 export class BoardController {
 
@@ -57,10 +89,17 @@ export class BoardController {
    */
   @Get('/')
   @HttpCode(200)
+  @ApiOperation({ summary: '게시글 목록 조회' })
+  @ApiOkResponse({
+    description: '정상 처리',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ListResponseDTO) },
+      ],
+    },
+  })
   getList(
-    @Query('keyword') keyword?: string,
-    @Query('searchType') searchType?: string,
-    @Query('pageNum') pageNum?: number
+    @Query() pageDTO: PaginationDTO
   ): void {
 
   }
@@ -87,7 +126,26 @@ export class BoardController {
    */
   @Get('/:boardNo/:type')
   @HttpCode(200)
-  getDetail(@Param('boardNo') boardNo: number): void {
+  @ApiOperation({ summary: '게시글 상세 조회' })
+  @ApiParam({
+    name: 'boardNo',
+    required: true,
+    description: '게시글 번호',
+    type: Number
+  })
+  @ApiParam({
+    name: 'type',
+    required: true,
+    description: '테스트 타입',
+    type: String
+  })
+  @ApiOkResponse({
+    description: '정상 조회',
+    schema: {
+      $ref: getSchemaPath(DetailResponseDTO)
+    },
+  })
+  getDetail(@Param('boardNo') boardNo: number, @Param('type') type: string): void {
 
   }
 
@@ -115,7 +173,16 @@ export class BoardController {
   @UseGuards(RolesGuard)
   @Post('/')
   @HttpCode(201)
-  postBoard(@Body() postBoardDTO: PostBoardDTO, @Req() req: Request): void {
+  @ApiBearerCookie()
+  @ApiOperation({ summary: '게시글 작성' })
+  @ApiBody({ type: PostBoardDto })
+  @CustomApiCreatedResponse(
+    '게시글 작성 완료',
+    {
+      boardNo: 1
+    }
+  )
+  postBoard(@Body() postBoardDTO: PostBoardDto, @Req() req: Request): void {
 
   }
 
@@ -148,6 +215,18 @@ export class BoardController {
   @UseGuards(RolesGuard)
   @Get('/patch-detail/:boardNo')
   @HttpCode(200)
+  @ApiBearerCookie()
+  @ApiOperation({ summary: '게시글 수정 데이터 조회' })
+  @ApiParam({
+    name: 'boardNo',
+    required: true,
+    description: '게시글 번호',
+    type: Number
+  })
+  @ApiOkResponse({
+    description: '정상 조회',
+    schema: { $ref: getSchemaPath(PatchDetailResponseDTO) }
+  })
   getPatchDetail(@Param('boardNo') boardNo: number, @Req() req: Request): void {
 
   }
@@ -177,9 +256,24 @@ export class BoardController {
   @UseGuards(RolesGuard)
   @Patch('/:boardNo')
   @HttpCode(200)
+  @ApiBearerCookie()
+  @ApiOperation({ summary: '게시글 수정' })
+  @ApiParam({
+    name: 'boardNo',
+    required: true,
+    description: '게시글 번호',
+    type: Number
+  })
+  @ApiBody({ type: PostBoardDto })
+  @ApiOkResponse({
+    description: '게시글 수정 완료',
+    schema: {
+      example: { boardNo: 1 }
+    }
+  })
   patchBoard(
     @Param('boardNo') boardNo: number,
-    @Body() patchBoardDTO: any,
+    @Body() patchBoardDTO: PostBoardDto,
     @Req() req: Request
   ): void {
 
@@ -202,7 +296,16 @@ export class BoardController {
   @Roles('ROLE_MEMBER')
   @UseGuards(RolesGuard)
   @Delete('/:boardNo')
+  @ApiBearerCookie()
+  @ApiOperation({ summary: '게시글 삭제' })
   @HttpCode(204)
+  @ApiParam({
+    name: 'boardNo',
+    required: true,
+    description: '게시글 번호',
+    type: Number
+  })
+  @ApiNoContentVoid('삭제 완료')
   deleteBoard(@Param('boardNo') boardNo: number, @Req() req: Request): void {
 
   }
@@ -236,6 +339,20 @@ export class BoardController {
   @UseGuards(RolesGuard)
   @Get('/reply/:boardNo')
   @HttpCode(200)
+  @ApiBearerCookie()
+  @ApiOperation({ summary: '게시글 답변 작성을 위한 원본글 데이터 조회' })
+  @ApiParam({
+    name: 'boardNo',
+    required: true,
+    description: '게시글 번호',
+    type: Number
+  })
+  @ApiOkResponse({
+    description: '정상 조회',
+    schema: {
+      $ref: getSchemaPath(ReplyDataResponseDTO)
+    }
+  })
   getReplyData(@Param('boardNo') boardNo: number, @Req() req: Request): void {
 
   }
@@ -268,7 +385,16 @@ export class BoardController {
   @UseGuards(RolesGuard)
   @Post('/reply')
   @HttpCode(201)
-  postReply(@Body() replyDTO: any, @Req() req: Request): void {
+  @ApiBearerCookie()
+  @ApiOperation({ summary: '게시글 답변 작성' })
+  @ApiBody({ type: PostReplyDTO })
+  @CustomApiCreatedResponse(
+    '답변 작성 완료',
+    {
+      boardNo: 1
+    }
+  )
+  postReply(@Body() replyDTO: PostReplyDTO, @Req() req: Request): void {
 
   }
 }

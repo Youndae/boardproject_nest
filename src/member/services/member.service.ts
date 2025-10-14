@@ -3,7 +3,7 @@ import { MemberRepository } from '#member/repositories/member.repository';
 import { JoinDTO } from '#member/dtos/in/join.dto';
 import { AuthRepository } from '#member/repositories/auth.repository';
 import { Transactional } from 'typeorm-transactional';
-import { PatchProfileDTO } from '#member/dtos/in/patchProfile.dto';
+import { PatchProfileDto } from '#member/dtos/in/patch-profile.dto';
 import type { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { ResizingService } from '#common/services/resizing.service';
@@ -15,7 +15,7 @@ import { FileService } from '#common/services/file.service';
 import { LoggerService } from '#config/logger/logger.service';
 import { RequestUserType } from '#common/types/requestUser.type';
 import { ForbiddenException } from '#common/exceptions/forbidden.exception';
-import { ProfileResponseDTO } from '#member/dtos/out/profileResponse.dto';
+import { ProfileResponseDto } from '#member/dtos/out/profile-response.dto';
 import { BadRequestException } from '#common/exceptions/badRequest.exception';
 
 @Injectable()
@@ -109,7 +109,7 @@ export class MemberService {
    * @return void
    */
   @Transactional()
-  async patchProfile(patchProfileDTO: PatchProfileDTO, req: Request): Promise<void> {
+  async patchProfile(patchProfileDTO: PatchProfileDto, req: Request): Promise<void> {
     let profileThumbnail: { imageName: string, originName: string } | undefined;
     const destDir: string = this.configService.get<string>('PROFILE_FILE_PATH') ?? '';
 
@@ -176,7 +176,7 @@ export class MemberService {
    *   profileImage: string | null
    * }
    */
-  async getProfile(userId: string): Promise<ProfileResponseDTO> {
+  async getProfile(userId: string): Promise<ProfileResponseDto> {
 
     return this.memberRepository.findMemberProfileByUserId(userId);
   }

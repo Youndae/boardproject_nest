@@ -1,6 +1,6 @@
 import { IsOptional, IsString, Length } from 'class-validator';
 
-export class PatchProfileDTO {
+export class PatchProfileDto {
   //test용 constructor
   constructor(nickname: string, deleteProfile: string | undefined) {
     this.nickname = nickname;

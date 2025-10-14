@@ -14,8 +14,8 @@ import { Member } from '#member/entities/member.entity';
 import { ConfigService } from '@nestjs/config';
 import bcrypt from 'bcrypt';
 import { Auth } from '#member/entities/auth.entity';
-import { PatchProfileDTO } from '#member/dtos/in/patchProfile.dto';
-import { ProfileResponseDTO } from '#member/dtos/out/profileResponse.dto';
+import { PatchProfileDto } from '#member/dtos/in/patch-profile.dto';
+import { ProfileResponseDto } from '#member/dtos/out/profile-response.dto';
 
 describe('member.service Integration', () => {
   let app: INestApplication;
@@ -278,7 +278,7 @@ describe('member.service Integration', () => {
     const resizedFilename: string = 'resizedNewProfile.png';
 
     it('프로필 이미지는 undefined, nickname은 blank로 요청된 경우', async () => {
-      const patchProfile: PatchProfileDTO = new PatchProfileDTO('', undefined);
+      const patchProfile: PatchProfileDto = new PatchProfileDto('', undefined);
       const patchReq: any = {
         user: {
           userId: saveMember.userId,
@@ -299,7 +299,7 @@ describe('member.service Integration', () => {
 
     it('프로필 이미지와 기존 이미지명, nickname 모두 포함해서 요청하는 경우', async () => {
       const newNickname: string = 'newTesterNickname';
-      const patchProfile: PatchProfileDTO = new PatchProfileDTO(newNickname, saveMember.profileThumbnail!);
+      const patchProfile: PatchProfileDto = new PatchProfileDto(newNickname, saveMember.profileThumbnail!);
       const patchReq: any = {
         user: {
           userId: saveMember.userId,
@@ -326,7 +326,7 @@ describe('member.service Integration', () => {
 
     it('기존 thumbnail이 존재하는데 프로필 이미지와 nickname만 요청하는 경우', async () => {
       const newNickname: string = 'newTesterNickname';
-      const patchProfile: PatchProfileDTO = new PatchProfileDTO(newNickname, undefined);
+      const patchProfile: PatchProfileDto = new PatchProfileDto(newNickname, undefined);
       const patchReq: any = {
         user: {
           userId: saveMember.userId,
@@ -353,7 +353,7 @@ describe('member.service Integration', () => {
 
     it('사용자 데이터가 없는 경우', async () => {
       const newNickname: string = 'newTesterNickname';
-      const patchProfile: PatchProfileDTO = new PatchProfileDTO(newNickname, undefined);
+      const patchProfile: PatchProfileDto = new PatchProfileDto(newNickname, undefined);
       const patchReq: any = {
         user: {
           userId: 'noneMember'
@@ -382,7 +382,7 @@ describe('member.service Integration', () => {
 
     it('정상 요청이지만 기존 이미지 삭제에서 오류가 발생한 경우', async () => {
       const newNickname: string = 'newTesterNickname';
-      const patchProfile: PatchProfileDTO = new PatchProfileDTO(newNickname, saveMember.profileThumbnail!);
+      const patchProfile: PatchProfileDto = new PatchProfileDto(newNickname, saveMember.profileThumbnail!);
       const patchReq: any = {
         user: {
           userId: saveMember.userId,
@@ -413,7 +413,7 @@ describe('member.service Integration', () => {
 
   describe('getProfile', () => {
     it('정상 조회', async () => {
-      const result: ProfileResponseDTO = await memberService.getProfile(saveMember.userId);
+      const result: ProfileResponseDto = await memberService.getProfile(saveMember.userId);
 
       expect(result.nickName).toBe(saveMember.nickName);
       expect(result.profileThumbnail).toBe(saveMember.profileThumbnail);

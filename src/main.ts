@@ -20,41 +20,6 @@ async function bootstrap() {
   // const globalPrefix = 'api';
   // app.setGlobalPrefix(globalPrefix);
 
-  // swagger config builder
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('My API')
-    .setDescription('API Document Description')
-    .setVersion('1.0')
-    // 보안 스키마 추가
-    // .addBearerAuth(
-    //   { type: 'http', scheme: 'bearer', bearerFormat: 'JWT'},
-    //   'access-token',
-    // )
-    .build();
-
-  // 문서 생성
-  const swaggerDocument = SwaggerModule.createDocument(
-    app,
-    swaggerConfig,
-    {
-      deepScanRoutes: true,
-      // include를 통해 원하는 Module Controller만 문서화 가능
-      // include: [MemberModule, BoardModule],
-    }
-  );
-
-  // Swagger UI 경로 설정. /docs
-  SwaggerModule.setup(
-    'docs',
-    app,
-    swaggerDocument,
-    {
-      swaggerOptions: {
-        // persistAuthorization: true,
-      }
-    }
-  )
-
   // DI로 LoggerService
   const logger = app.get(LoggerService);
   const config = app.get(ConfigService);
@@ -79,6 +44,79 @@ async function bootstrap() {
 	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 	allowedHeaders: ['Content-Type', 'Authorization'],
   });
+
+  const accessHeader = config.get<string>('JWT_ACCESS_HEADER');
+  const refreshHeader = config.get<string>('JWT_REFRESH_HEADER');
+  const inoHeader = config.get<string>('JWT_INO_HEADER');
+
+  // swagger config builder
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('My API')
+    .setDescription('API Document Description')
+    .setVersion('1.0')
+    // AccessToken을 Request Header에 담는 경우
+    // .addBearerAuth(
+    //   {
+    //     type: 'http',
+    //     scheme: 'bearer',
+    //     bearerFormat: 'JWT',
+    //     name: 'Authorization',
+    //     in: 'header',
+    //     description: 'Access Token - Bearer<token>'
+    //   },
+    //   'access-token',
+    // )
+    .addBearerAuth(
+      {
+        type: 'apiKey',
+        in: 'cookie',
+        name: accessHeader,
+        description: 'Access Token - Bearer<token>',
+      },
+      'access-token'
+    )
+    .addBearerAuth(
+      {
+        type: 'apiKey',
+        in: 'cookie',
+        name: refreshHeader,
+        description: 'Refresh Token - Bearer<token>'
+      },
+      'refresh-token'
+    )
+    .addBearerAuth(
+      {
+        type: 'apiKey',
+        in: 'cookie',
+        name: inoHeader,
+        description: 'ino - <value>'
+      },
+      'ino'
+    )
+    .build();
+
+  // 문서 생성
+  const swaggerDocument = SwaggerModule.createDocument(
+    app,
+    swaggerConfig,
+    {
+      deepScanRoutes: true, // Generic DTO까지 정상 인식.
+      // include를 통해 원하는 Module Controller만 문서화 가능
+      // include: [MemberModule, BoardModule],
+    }
+  );
+
+  // Swagger UI 경로 설정. /docs
+  SwaggerModule.setup(
+    'docs',
+    app,
+    swaggerDocument,
+    {
+      swaggerOptions: {
+        persistAuthorization: true, // 브라우저를 새로고침하더라도 임력값 유지
+      }
+    }
+  )
 
   await app.listen(process.env.PORT ?? 8080);
   logger.info(`Application is running on : ${await app.getUrl()}`);

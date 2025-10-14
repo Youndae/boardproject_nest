@@ -6,7 +6,7 @@ import { DataSource } from 'typeorm';
 import { INestApplication } from '@nestjs/common';
 import { MemberModule } from '#member/member.module';
 import { TestDatabaseModule } from '../../module/testDatabase.module';
-import { ProfileResponseDTO } from '#member/dtos/out/profileResponse.dto';
+import { ProfileResponseDto } from '#member/dtos/out/profile-response.dto';
 
 describe('memberRepository', () => {
   let memberRepository: MemberRepository;
@@ -129,21 +129,21 @@ describe('memberRepository', () => {
 
   describe('findMemberProfileByUserId', () => {
     it('정상 조회', async () => {
-      const result: ProfileResponseDTO = await memberRepository.findMemberProfileByUserId(localMember.userId);
+      const result: ProfileResponseDto = await memberRepository.findMemberProfileByUserId(localMember.userId);
 
       expect(result.nickName).toBe(localMember.nickName);
       expect(result.profileThumbnail).toBe(localMember.profileThumbnail);
     });
 
     it('닉네임과 프로필 이미지 모두 Null인 사용자 정상 조회', async () => {
-      const result: ProfileResponseDTO = await memberRepository.findMemberProfileByUserId(googleMember.userId);
+      const result: ProfileResponseDto = await memberRepository.findMemberProfileByUserId(googleMember.userId);
 
       expect(result.nickName).toBeNull();
       expect(result.profileThumbnail).toBeNull();
     });
 
     it('존재하지 않는 사용자 조회', async () => {
-      const result: ProfileResponseDTO = await memberRepository.findMemberProfileByUserId('noneMember');
+      const result: ProfileResponseDto = await memberRepository.findMemberProfileByUserId('noneMember');
 
       expect(result.nickName).toBeNull();
       expect(result.profileThumbnail).toBeNull();
