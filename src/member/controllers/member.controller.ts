@@ -23,7 +23,7 @@ import { ProfileResponseDto } from '#member/dtos/out/profile-response.dto';
 import { RequestUserType } from '#common/types/requestUser.type';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { BadRequestException } from '#common/exceptions/badRequest.exception';
+import { BadRequestException } from '#common/exceptions/bad-request.exception';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('members')

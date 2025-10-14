@@ -16,7 +16,7 @@ import { LoggerService } from '#config/logger/logger.service';
 import { RequestUserType } from '#common/types/requestUser.type';
 import { ForbiddenException } from '#common/exceptions/forbidden.exception';
 import { ProfileResponseDto } from '#member/dtos/out/profile-response.dto';
-import { BadRequestException } from '#common/exceptions/badRequest.exception';
+import { BadRequestException } from '#common/exceptions/bad-request.exception';
 
 @Injectable()
 export class MemberService {

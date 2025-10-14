@@ -7,6 +7,7 @@ import { BoardListResponseDTO } from '#board/dtos/out/board-list-response.dto';
 import { BoardDetailResponseDTO } from '#board/dtos/out/board-detail-response.dto';
 import { NotFoundException } from '#common/exceptions/not-found.exception';
 import { BoardReplyDataDTO } from '#board/dtos/out/board-reply-data.dto';
+import { PostReplyDTO } from '#board/dtos/in/post-reply.dto';
 
 const boardAmount = 20;
 
@@ -56,31 +57,31 @@ export class BoardRepository extends Repository<Board> {
     return { list, totalElements };
   }
 
-  async getBoardDetail(boardNo: number): Promise<BoardDetailResponseDTO> {
+  async getBoardDetail(boardNo: number): Promise<BoardDetailResponseDTO | null> {
     const board: Board | null = await this.findOne({
         select: ['boardNo', 'boardTitle', 'boardContent', 'userId', 'boardDate'],
         where: { boardNo }
       });
 
     if(!board)
-      throw new NotFoundException();
+      return null;
 
     return new BoardDetailResponseDTO(board);
   }
 
-  async getReplyData(boardNo: number): Promise<BoardReplyDataDTO> {
+  async getReplyData(boardNo: number): Promise<BoardReplyDataDTO | null> {
     const board: Board | null = await this.findOne({
       select: ['boardGroupNo', 'boardUpperNo', 'boardIndent'],
       where: { boardNo }
     });
 
     if(!board)
-      throw new NotFoundException();
+      return null;
 
     return new BoardReplyDataDTO(board);
   }
 
-  async postReply(replyDTO: any, userId: string): Promise<number> {
+  async postReply(replyDTO: PostReplyDTO, userId: string): Promise<number> {
     const reply: Board = this.create({
       userId,
       boardTitle: replyDTO.boardTitle,

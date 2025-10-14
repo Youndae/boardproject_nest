@@ -3,6 +3,7 @@ import { BoardRepository } from '#board/repositories/board.repository';
 import { LoggerService } from '#config/logger/logger.service';
 import { Board } from '#board/entities/board.entity';
 import { PaginationDTO } from '#common/dtos/in/pagination.dto';
+import { PostReplyDTO } from '#board/dtos/in/post-reply.dto';
 
 @Injectable()
 export class BoardService {
@@ -168,7 +169,7 @@ export class BoardService {
    *   boardNo: number
    * }
    */
-  async postBoardReplyService(replyDTO: any, userId: string): Promise<void> {
+  async postBoardReplyService(replyDTO: PostReplyDTO, userId: string): Promise<void> {
     // TODO: return repository.postReply(replyDTO, userId);
   }
 

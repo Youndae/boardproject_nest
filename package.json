@@ -14,7 +14,7 @@
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules NODE_ENV=test jest --runInBand --silent=false --verbose --detectOpenHandles",
-    "test:only": "cross-env NODE_OPTIONS=--experimental-vm-modules NODE_ENV=test jest test/member/integration/member.service.spec.ts --runInBand --silent=false --verbose --detectOpenHandles",
+    "test:only": "cross-env NODE_OPTIONS=--experimental-vm-modules NODE_ENV=test jest test/board/integration/board.repository.spec.ts --runInBand --silent=false --verbose --detectOpenHandles",
     "test:e2e": "cross-env NODE_OPTIONS=--experimental-vm-modules NODE_ENV=test jest --config ./test/jest-e2e.json",
     "test:e2eonly": "cross-env NODE_OPTIONS=--experimental-vm-modules NODE_ENV=test jest --config ./test/jest-e2e.json test/member/integration/member.e2e-spec.ts --runInBand",
     "coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules NODE_ENV=test jest --coverage --runInBand"
