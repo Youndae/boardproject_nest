@@ -9,12 +9,13 @@ import {
   Post,
   Patch,
   Delete,
-  UseGuards
+  UseGuards, ValidationPipe,
 } from '@nestjs/common';
 import { BoardService } from '#board/services/board.service';
 import { Roles } from '#common/decorators/roles.decorator';
 import { RolesGuard } from '#common/guards/roles.guard';
 import type { Request } from 'express';
+import { PostBoardDTO } from '#board/dtos/in/postBoard.dto';
 
 @Controller('board')
 export class BoardController {
@@ -114,7 +115,7 @@ export class BoardController {
   @UseGuards(RolesGuard)
   @Post('/')
   @HttpCode(201)
-  postBoard(@Body() postBoardDTO: any, @Req() req: Request): void {
+  postBoard(@Body() postBoardDTO: PostBoardDTO, @Req() req: Request): void {
 
   }
 

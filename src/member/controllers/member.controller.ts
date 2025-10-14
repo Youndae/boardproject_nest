@@ -24,7 +24,9 @@ import { RequestUserType } from '#common/types/requestUser.type';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { BadRequestException } from '#common/exceptions/badRequest.exception';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('members')
 @Controller('member')
 export class MemberController {
 
@@ -35,6 +37,8 @@ export class MemberController {
 
   @Get('/check-login')
   @HttpCode(200)
+  @ApiOperation({ summary: '로그인 체크' })
+  @ApiResponse({ status: 200, description: '체크 완료', schema: { example: { loginStatus: true }, properties: { loginStatus: { type: 'boolean', description: '로그인 여부' }} }})
   checkUser(@Req() req: Request) {
 
     let loginStatus = false;
