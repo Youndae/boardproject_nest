@@ -4,6 +4,13 @@ import { LoggerService } from '#config/logger/logger.service';
 import { Board } from '#board/entities/board.entity';
 import { PaginationDTO } from '#common/dtos/in/pagination.dto';
 import { PostReplyDTO } from '#board/dtos/in/post-reply.dto';
+import { BoardListResponseDTO } from '#board/dtos/out/board-list-response.dto';
+import { BoardDetailResponseDTO } from '#board/dtos/out/board-detail-response.dto';
+import { NotFoundException } from '#common/exceptions/not-found.exception';
+import { PostBoardDto } from '#board/dtos/in/post-board.dto';
+import { BoardPatchDetailResponseDTO } from '#board/dtos/out/board-patch-detail-response.dto';
+import { BoardReplyDataDTO } from '#board/dtos/out/board-reply-data.dto';
+import { AccessDeniedException } from '#common/exceptions/access-denied.exception';
 
 @Injectable()
 export class BoardService {
@@ -34,11 +41,16 @@ export class BoardService {
    *   totalElements: number,
    * }
    */
-  async getListService(pageDTO: PaginationDTO): Promise<void> {
-    // TODO: boardList: BoardListResponseDTO = repository.getBoardList(pageDTO);
-    // TODO: repository.getBoardTotalElements(pageDTO); || getBoardList(pageDTO)에서 같이 조회하고 객체로 반환
+  async getListService(pageDTO: PaginationDTO): Promise<{
+    list: BoardListResponseDTO[], totalElements: number
+  }> {
+    this.logger.info('boardService.getListService :: ', { pageDTO });
+    const listAndElements: {
+      list: BoardListResponseDTO[],
+      totalElements: number
+    } = await this.boardRepository.getBoardList(pageDTO);
 
-    // TODO: return { content: boardList, empty: boardList.length !== 0, totalElements: totalElements }
+    return listAndElements;
   }
 
   /**
@@ -55,10 +67,15 @@ export class BoardService {
    *   } BoardDetailDTO
    * }
    */
-  async getDetailService(boardNo: number): Promise<void> {
-    // TODO: boardDetail: BoardDetailDTO = repository.getBoardDetail(boardNo);
+  async getDetailService(boardNo: number): Promise<BoardDetailResponseDTO> {
+    const boardDetail: BoardDetailResponseDTO | null = await this.boardRepository.getBoardDetail(boardNo);
 
-    // TODO: return boardDetail
+    if(!boardDetail) {
+      this.logger.error('boardService.getDetailService NotFoundException. boardNo : ', boardNo);
+      throw new NotFoundException();
+    }
+
+    return boardDetail;
   }
 
   /**
@@ -73,11 +90,11 @@ export class BoardService {
    *   boardNo: number
    * }
    */
-  async postBoardService(postBoardDTO: any, userId: string): Promise<void> {
-    // TODO: const saveBoard: Board = repository.create({ ... })
-    // TODO: const saveNo: number = repository.save(saveBoard).boardNo;
+  async postBoardService(postBoardDTO: PostBoardDto, userId: string): Promise<{ boardNo: number }> {
+    this.logger.info('boardService.postBoardService :: ', { postBoardDTO, userId });
+    const boardNo: number = await this.boardRepository.postBoard(postBoardDTO, userId);
 
-    // TODO: return { boardNo: saveNo }
+    return { boardNo };
   }
 
   /**
@@ -93,10 +110,11 @@ export class BoardService {
    *   } patchBoardResponseDTO
    * }
    */
-  async getBoardPatchDataService(boardNo: number, userId: string): Promise<void> {
-    // TODO: const board: Board = this.checkWriter(boardNo, userId)
+  async getBoardPatchDataService(boardNo: number, userId: string): Promise<BoardPatchDetailResponseDTO> {
+    this.logger.info('boardService.getBoardPatchDataService :: ', { boardNo, userId });
+    const board: Board = await this.checkWriter(boardNo, userId);
 
-    // TODO: return new PatchBoardResponseDTO(board);
+    return new BoardPatchDetailResponseDTO(board);
   }
 
   /**
@@ -112,14 +130,16 @@ export class BoardService {
    *   boardNo: number
    * }
    */
-  async patchBoardService(boardNo: number, patchBoardDTO: any, userId: string): Promise<void> {
-    // TODO: const patchBoard: Board = this.checkWriter(boardNo, userId);
+  async patchBoardService(boardNo: number, patchBoardDTO: any, userId: string): Promise<{ boardNo: number }> {
+    this.logger.info('boardService.patchBoardService :: ', { boardNo, patchBoardDTO, userId });
+    const patchBoard: Board = await this.checkWriter(boardNo, userId);
 
-    // TODO: patchBoard.boardTitle = patchBoardDTO.boardTitle; patchBoard.boardContent = patchBoardDTO.boardContent;
+    patchBoard.boardTitle = patchBoardDTO.boardTitle;
+    patchBoard.boardContent = patchBoardDTO.content;
 
-    // TODO: repository.save(patchBoard);
+    await this.boardRepository.save(patchBoard);
 
-    // TODO: return boardNo;
+    return { boardNo };
   }
 
   /**
@@ -130,9 +150,10 @@ export class BoardService {
    * @return void
    */
   async deleteBoardService(boardNo: number, userId: string): Promise<void> {
-    // TODO: this.checkWriter(boardNo, userId);
+    this.logger.info('boardService.deleteBoardService :: ', { boardNo, userId });
+    const board: Board = await this.checkWriter(boardNo, userId);
 
-    // TODO: repository.deleteOne({ where: { boardNo } });
+    await this.boardRepository.delete({ boardNo });
   }
 
   /**
@@ -147,10 +168,16 @@ export class BoardService {
    *   } BoardReplyDataDTO
    * }
    */
-  async getReplyPostDataService(boardNo: number): Promise<void> {
-    // TODO: const reply: BoardReplyDataDTO = repository.getReplyData(boardNo);
+  async getReplyPostDataService(boardNo: number): Promise<BoardReplyDataDTO> {
+    const replyData: BoardReplyDataDTO | null = await this.boardRepository.getReplyData(boardNo);
 
-    // TODO: return reply;
+    if(!replyData){
+      this.logger.error('boardService.getReplyPostDataService NotFoundException. boardNo : ', boardNo);
+      throw new NotFoundException();
+    }
+
+
+    return replyData;
   }
 
   /**
@@ -169,8 +196,11 @@ export class BoardService {
    *   boardNo: number
    * }
    */
-  async postBoardReplyService(replyDTO: PostReplyDTO, userId: string): Promise<void> {
-    // TODO: return repository.postReply(replyDTO, userId);
+  async postBoardReplyService(replyDTO: PostReplyDTO, userId: string): Promise<{ boardNo: number }> {
+    this.logger.info('boardService.postBoardReplyService :: ', { postReplyDTO: replyDTO, userId });
+    const boardNo: number = await this.boardRepository.postReply(replyDTO, userId);
+
+    return { boardNo };
   }
 
   /**
@@ -182,17 +212,25 @@ export class BoardService {
    * @return Board
    *
    * not equals
-   * @exception 403 FORBIDDEN
+   * @exception 403 ACCESS_DENIED
    *
    * Board not found
-   * @exception 400 BAD_REQUEST
+   * @exception 404 NOT_FOUND
    */
-  private async checkWriter(userId: string, boardNo: number): Promise<void> {
-    // TODO: const board: Board = repository.findOne({ where: { boardNo } });
+  private async checkWriter(boardNo: number, userId: string): Promise<Board> {
+    const board: Board | null = await this.boardRepository.findOne({ where: { boardNo} });
 
-    // TODO: if(!board) throw new BadRequestException();
-    // TODO: if(board.userId !== userId) throw new AccessDeniedException();
+    if(!board){
+      this.logger.error('boardService.checkWriter NotFoundException. boardNo: ', boardNo);
+      throw new NotFoundException();
+    }
 
-    // TODO: return board;
+
+    if(board.userId !== userId){
+      this.logger.error('boardService.checkWriter AccessDeniedException. userId : ', userId);
+      throw new AccessDeniedException();
+    }
+
+    return board;
   }
 }

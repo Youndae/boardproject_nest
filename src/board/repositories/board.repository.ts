@@ -8,6 +8,7 @@ import { BoardDetailResponseDTO } from '#board/dtos/out/board-detail-response.dt
 import { NotFoundException } from '#common/exceptions/not-found.exception';
 import { BoardReplyDataDTO } from '#board/dtos/out/board-reply-data.dto';
 import { PostReplyDTO } from '#board/dtos/in/post-reply.dto';
+import { PostBoardDto } from '#board/dtos/in/post-board.dto';
 
 const boardAmount = 20;
 
@@ -67,6 +68,23 @@ export class BoardRepository extends Repository<Board> {
       return null;
 
     return new BoardDetailResponseDTO(board);
+  }
+
+  async postBoard(postDTO: PostBoardDto, userId: string): Promise<number> {
+    const board: Board = this.create({
+      userId,
+      boardTitle: postDTO.boardTitle,
+      boardContent: postDTO.boardContent,
+      boardIndent: 1
+    });
+
+    const saveBoard: Board = await this.save(board);
+    saveBoard.boardGroupNo = saveBoard.boardNo;
+    saveBoard.boardUpperNo = `${saveBoard.boardNo}`;
+
+    await this.save(saveBoard);
+
+    return saveBoard.boardNo;
   }
 
   async getReplyData(boardNo: number): Promise<BoardReplyDataDTO | null> {

@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Board } from '#board/entities/board.entity';
 
 export class BoardPatchDetailResponseDTO {
 
@@ -19,4 +20,9 @@ export class BoardPatchDetailResponseDTO {
     description: '게시글 내용'
   })
   boardContent: string;
+
+  constructor(entity: Partial<Board>) {
+    if(entity)
+      Object.assign(this, entity);
+  }
 }
