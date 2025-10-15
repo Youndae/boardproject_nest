@@ -1,6 +1,6 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { BadRequestException } from '#common/exceptions/badRequest.exception';
+import { BadRequestException } from '#common/exceptions/bad-request.exception';
 import type { Request, Response } from 'express';
 
 

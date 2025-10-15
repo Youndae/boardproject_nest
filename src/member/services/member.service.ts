@@ -17,6 +17,7 @@ import { RequestUserType } from '#common/types/requestUser.type';
 import { ForbiddenException } from '#common/exceptions/forbidden.exception';
 import { ProfileResponseDto } from '#member/dtos/out/profile-response.dto';
 import { BadRequestException } from '#common/exceptions/bad-request.exception';
+import { getAuthUserId } from '#common/utils/auth.utils';
 
 @Injectable()
 export class MemberService {
@@ -121,7 +122,7 @@ export class MemberService {
         this.logger.info('memberService :: patch profile new profileThumbnail. ', profileThumbnail);
       }
 
-      const userId: string = (req.user as RequestUserType).userId;
+      const userId: string = getAuthUserId(req);
 
       const member: Member | null = await this.memberRepository.findOne({ where: { userId }});
 

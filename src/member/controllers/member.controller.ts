@@ -25,6 +25,7 @@ import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { BadRequestException } from '#common/exceptions/bad-request.exception';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { getAuthUserId } from '#common/utils/auth.utils';
 
 @ApiTags('members')
 @Controller('member')
@@ -205,9 +206,9 @@ export class MemberController {
   @Get('/profile')
   @HttpCode(200)
   async getProfile(@Req() req: Request): Promise<ProfileResponseDto> {
-    const member = req.user as RequestUserType;
+    const userId: string = getAuthUserId(req);
 
-    return await this.memberService.getProfile(member.userId);
+    return await this.memberService.getProfile(userId);
   }
 
 }

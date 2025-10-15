@@ -36,6 +36,8 @@ import { BoardReplyDataDTO } from '#board/dtos/out/board-reply-data.dto';
 import { PostReplyDTO } from '#board/dtos/in/post-reply.dto';
 import { ApiBearerCookie } from '#common/decorators/swagger/api-bearer-cookie.decorator';
 import { PaginationDTO } from '#common/dtos/in/pagination.dto';
+import { UserStatusDTOMapper } from '#common/mapper/user-status.mapper';
+import { getAuthUserId } from '#common/utils/auth.utils';
 
 const ListResponseDTO = createListResponseDTO(BoardListResponseDTO, 'board');
 const DetailResponseDTO = createDetailResponseDTO(BoardDetailResponseDTO, 'boardDetail');
@@ -98,14 +100,19 @@ export class BoardController {
       ],
     },
   })
-  getList(
-    @Query() pageDTO: PaginationDTO
-  ): void {
+  async getList(
+    @Query() pageDTO: PaginationDTO,
+    @Req() req: Request
+  ): Promise<InstanceType<typeof ListResponseDTO>> {
+    const boardList: { list: BoardListResponseDTO[], totalElements: number } = await this.boardService.getListService(pageDTO);
+    const userStatus: UserStatusDTO = UserStatusDTOMapper.createUserStatusByReq(req);
 
+    return new ListResponseDTO(boardList.list, boardList.totalElements, userStatus);
   }
 
   /**
    * @param boardNo
+   * @param req
    *
    * @returns {
    *   status: 200,
@@ -133,20 +140,17 @@ export class BoardController {
     description: '게시글 번호',
     type: Number
   })
-  @ApiParam({
-    name: 'type',
-    required: true,
-    description: '테스트 타입',
-    type: String
-  })
   @ApiOkResponse({
     description: '정상 조회',
     schema: {
       $ref: getSchemaPath(DetailResponseDTO)
     },
   })
-  getDetail(@Param('boardNo') boardNo: number, @Param('type') type: string): void {
+  async getDetail(@Param('boardNo') boardNo: number, @Req() req: Request): Promise<InstanceType<typeof DetailResponseDTO>> {
+    const boardDetail: BoardDetailResponseDTO = await this.boardService.getDetailService(boardNo);
+    const userStatus: UserStatusDTO = UserStatusDTOMapper.createUserStatusByReq(req);
 
+    return new DetailResponseDTO(boardDetail, userStatus);
   }
 
   /**
@@ -182,8 +186,10 @@ export class BoardController {
       boardNo: 1
     }
   )
-  postBoard(@Body() postBoardDTO: PostBoardDto, @Req() req: Request): void {
+  async postBoard(@Body() postBoardDTO: PostBoardDto, @Req() req: Request): Promise<{ boardNo: number }> {
+    const userId: string = getAuthUserId(req);
 
+    return await this.boardService.postBoardService(postBoardDTO, userId);
   }
 
   /**
@@ -227,8 +233,12 @@ export class BoardController {
     description: '정상 조회',
     schema: { $ref: getSchemaPath(PatchDetailResponseDTO) }
   })
-  getPatchDetail(@Param('boardNo') boardNo: number, @Req() req: Request): void {
+  async getPatchDetail(@Param('boardNo') boardNo: number, @Req() req: Request): Promise<InstanceType<typeof PatchDetailResponseDTO>> {
+    const userId: string = getAuthUserId(req);
+    const patchDetail: BoardPatchDetailResponseDTO = await this.boardService.getBoardPatchDataService(boardNo, userId);
+    const userStatus: UserStatusDTO = UserStatusDTOMapper.createUserStatusByUserId(userId);
 
+    return new PatchDetailResponseDTO(patchDetail, userStatus);
   }
 
   /**
@@ -271,12 +281,14 @@ export class BoardController {
       example: { boardNo: 1 }
     }
   })
-  patchBoard(
+  async patchBoard(
     @Param('boardNo') boardNo: number,
     @Body() patchBoardDTO: PostBoardDto,
     @Req() req: Request
-  ): void {
+  ): Promise<{ boardNo: number }> {
+    const userId: string = getAuthUserId(req);
 
+    return await this.boardService.patchBoardService(boardNo, patchBoardDTO, userId);
   }
 
   /**
@@ -306,8 +318,10 @@ export class BoardController {
     type: Number
   })
   @ApiNoContentVoid('삭제 완료')
-  deleteBoard(@Param('boardNo') boardNo: number, @Req() req: Request): void {
+  async deleteBoard(@Param('boardNo') boardNo: number, @Req() req: Request): Promise<void> {
+    const userId: string = getAuthUserId(req);
 
+    await this.boardService.deleteBoardService(boardNo, userId);
   }
 
   /**
@@ -353,8 +367,11 @@ export class BoardController {
       $ref: getSchemaPath(ReplyDataResponseDTO)
     }
   })
-  getReplyData(@Param('boardNo') boardNo: number, @Req() req: Request): void {
+  async getReplyData(@Param('boardNo') boardNo: number, @Req() req: Request): Promise<InstanceType<typeof ReplyDataResponseDTO>> {
+    const replyData: BoardReplyDataDTO = await this.boardService.getReplyDataService(boardNo);
+    const userStatus: UserStatusDTO = UserStatusDTOMapper.createUserStatusByReq(req);
 
+    return new ReplyDataResponseDTO(replyData, userStatus);
   }
 
   /**
@@ -394,7 +411,9 @@ export class BoardController {
       boardNo: 1
     }
   )
-  postReply(@Body() replyDTO: PostReplyDTO, @Req() req: Request): void {
+  async postReply(@Body() replyDTO: PostReplyDTO, @Req() req: Request): Promise<{ boardNo: number }> {
+    const userId: string = getAuthUserId(req);
 
+    return await this.boardService.postBoardReplyService(replyDTO, userId);
   }
 }

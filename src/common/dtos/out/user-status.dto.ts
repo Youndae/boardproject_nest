@@ -14,8 +14,8 @@ export class UserStatusDTO {
   })
   uid: string;
 
-  constructor(user: { userId: string, roles: string[] }) {
-    this.loggedIn = user !== undefined;
-    this.uid = user ? user.userId : 'Anonymous'
+  constructor(userId: string | null) {
+    this.loggedIn = userId !== null;
+    this.uid = userId ?? 'Anonymous';
   }
 }

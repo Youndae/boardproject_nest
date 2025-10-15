@@ -42,7 +42,7 @@ export class BoardService {
    * }
    */
   async getListService(pageDTO: PaginationDTO): Promise<{
-    list: BoardListResponseDTO[], empty: boolean, totalElements: number
+    list: BoardListResponseDTO[], totalElements: number
   }> {
     this.logger.info('boardService.getListService :: ', { pageDTO });
     const listAndElements: {
@@ -52,7 +52,6 @@ export class BoardService {
 
     return {
       list: listAndElements.list,
-      empty: listAndElements.list.length === 0,
       totalElements: listAndElements.totalElements
     };
   }
