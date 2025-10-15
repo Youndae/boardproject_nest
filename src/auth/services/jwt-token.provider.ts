@@ -9,7 +9,7 @@ import { TokenStealingException } from '#common/exceptions/token-stealing.except
 import { TokenExpiredException } from '#common/exceptions/token-expired.exception';
 import { InternalServerErrorException } from '#common/exceptions/internal-server-error.exception';
 import { TokenInvalidException } from '#common/exceptions/token-invalid.exception';
-import { BadRequestException } from '#common/exceptions/badRequest.exception';
+import { BadRequestException } from '#common/exceptions/bad-request.exception';
 
 @Injectable()
 export class JWTTokenProvider {

@@ -151,14 +151,12 @@ describe('board.service Integration', () => {
     it('정상 조회. 검색어 없음.', async () => {
       const result: {
         list: BoardListResponseDTO[],
-        empty: boolean,
         totalElements: number
       } = await boardService.getListService(pageDTO);
 
       expect(result).not.toBeNull();
       expect(result.list).not.toStrictEqual([]);
       expect(result.list.length).toBe(boardAmount);
-      expect(result.empty).toBeFalsy();
       expect(result.totalElements).toBe(boardListCount);
     });
 
@@ -167,14 +165,12 @@ describe('board.service Integration', () => {
 
       const result: {
         list: BoardListResponseDTO[],
-        empty: boolean,
         totalElements: number
       } = await boardService.getListService(pageDTO);
 
       expect(result).not.toBeNull();
       expect(result.list).toStrictEqual([]);
       expect(result.list.length).toBe(0);
-      expect(result.empty).toBeTruthy();
       expect(result.totalElements).toBe(0);
     });
 
@@ -184,7 +180,6 @@ describe('board.service Integration', () => {
 
       const result: {
         list: BoardListResponseDTO[],
-        empty: boolean,
         totalElements: number
       } = await boardService.getListService(pageDTO);
 
@@ -193,7 +188,6 @@ describe('board.service Integration', () => {
       expect(result).not.toBeNull();
       expect(result.list).not.toStrictEqual([]);
       expect(result.list.length).toBe(1);
-      expect(result.empty).toBeFalsy();
       expect(result.totalElements).toBe(1);
       expect(result.list[0].boardTitle).toBe(`testTitle${pageDTO.keyword}`);
     });
@@ -204,14 +198,12 @@ describe('board.service Integration', () => {
 
       const result: {
         list: BoardListResponseDTO[],
-        empty: boolean,
         totalElements: number
       } = await boardService.getListService(pageDTO);
 
       expect(result).not.toBeNull();
       expect(result.list).not.toStrictEqual([]);
       expect(result.list.length).toBe(1);
-      expect(result.empty).toBeFalsy();
       expect(result.totalElements).toBe(1);
       expect(result.list[0].boardTitle).toBe(`testTitle${pageDTO.keyword}`);
     });
@@ -222,14 +214,12 @@ describe('board.service Integration', () => {
 
       const result: {
         list: BoardListResponseDTO[],
-        empty: boolean,
         totalElements: number
       } = await boardService.getListService(pageDTO);
 
       expect(result).not.toBeNull();
       expect(result.list).not.toStrictEqual([]);
       expect(result.list.length).toBe(1);
-      expect(result.empty).toBeFalsy();
       expect(result.totalElements).toBe(1);
       expect(result.list[0].boardTitle).toBe(`testTitle${pageDTO.keyword}`);
     });
@@ -240,14 +230,12 @@ describe('board.service Integration', () => {
 
       const result: {
         list: BoardListResponseDTO[],
-        empty: boolean,
         totalElements: number
       } = await boardService.getListService(pageDTO);
 
       expect(result).not.toBeNull();
       expect(result.list).not.toStrictEqual([]);
       expect(result.list.length).toBe(boardAmount);
-      expect(result.empty).toBeFalsy();
       expect(result.totalElements).toBe(boardListCount);
     });
   })

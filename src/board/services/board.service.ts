@@ -200,6 +200,12 @@ export class BoardService {
    */
   async postBoardReplyService(replyDTO: PostReplyDTO, userId: string): Promise<{ boardNo: number }> {
     this.logger.info('boardService.postBoardReplyService :: ', { postReplyDTO: replyDTO, userId });
+
+    const upperBoard: Board | null = await this.boardRepository.findOne({ where: { boardNo: replyDTO.boardGroupNo } });
+
+    if(!upperBoard)
+      throw new NotFoundException();
+
     const boardNo: number = await this.boardRepository.postReply(replyDTO, userId);
 
     return { boardNo };

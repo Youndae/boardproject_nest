@@ -9,7 +9,7 @@ import {
   Post,
   Patch,
   Delete,
-  UseGuards,
+  UseGuards, ParseIntPipe, ValidationPipe,
 } from '@nestjs/common';
 import { BoardService } from '#board/services/board.service';
 import { Roles } from '#common/decorators/roles.decorator';
@@ -38,6 +38,9 @@ import { ApiBearerCookie } from '#common/decorators/swagger/api-bearer-cookie.de
 import { PaginationDTO } from '#common/dtos/in/pagination.dto';
 import { UserStatusDTOMapper } from '#common/mapper/user-status.mapper';
 import { getAuthUserId } from '#common/utils/auth.utils';
+import { plainToInstance } from 'class-transformer';
+import { validate, ValidationError } from 'class-validator';
+import { BadRequestException } from '#common/exceptions/bad-request.exception';
 
 const ListResponseDTO = createListResponseDTO(BoardListResponseDTO, 'board');
 const DetailResponseDTO = createDetailResponseDTO(BoardDetailResponseDTO, 'boardDetail');
@@ -131,7 +134,7 @@ export class BoardController {
    *   }
    * }
    */
-  @Get('/:boardNo/:type')
+  @Get('/:boardNo')
   @HttpCode(200)
   @ApiOperation({ summary: '게시글 상세 조회' })
   @ApiParam({
@@ -146,7 +149,7 @@ export class BoardController {
       $ref: getSchemaPath(DetailResponseDTO)
     },
   })
-  async getDetail(@Param('boardNo') boardNo: number, @Req() req: Request): Promise<InstanceType<typeof DetailResponseDTO>> {
+  async getDetail(@Param('boardNo', ParseIntPipe) boardNo: number, @Req() req: Request): Promise<InstanceType<typeof DetailResponseDTO>> {
     const boardDetail: BoardDetailResponseDTO = await this.boardService.getDetailService(boardNo);
     const userStatus: UserStatusDTO = UserStatusDTOMapper.createUserStatusByReq(req);
 

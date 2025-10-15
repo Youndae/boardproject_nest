@@ -19,7 +19,7 @@ export class BoardRepository extends Repository<Board> {
   }
 
   async getBoardList(pageDTO: PaginationDTO): Promise<{ list: BoardListResponseDTO[], totalElements: number }> {
-    const offset = getPaginationOffset(pageDTO.pageNum!, boardAmount);
+    const offset: number = getPaginationOffset(pageDTO.pageNum!, boardAmount);
     const keyword: string = setKeyword(pageDTO.keyword);
 
     const query = this.createQueryBuilder('board')
