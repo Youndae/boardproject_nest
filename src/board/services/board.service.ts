@@ -42,7 +42,7 @@ export class BoardService {
    * }
    */
   async getListService(pageDTO: PaginationDTO): Promise<{
-    list: BoardListResponseDTO[], totalElements: number
+    list: BoardListResponseDTO[], empty: boolean, totalElements: number
   }> {
     this.logger.info('boardService.getListService :: ', { pageDTO });
     const listAndElements: {
@@ -50,7 +50,11 @@ export class BoardService {
       totalElements: number
     } = await this.boardRepository.getBoardList(pageDTO);
 
-    return listAndElements;
+    return {
+      list: listAndElements.list,
+      empty: listAndElements.list.length === 0,
+      totalElements: listAndElements.totalElements
+    };
   }
 
   /**
@@ -130,12 +134,12 @@ export class BoardService {
    *   boardNo: number
    * }
    */
-  async patchBoardService(boardNo: number, patchBoardDTO: any, userId: string): Promise<{ boardNo: number }> {
+  async patchBoardService(boardNo: number, patchBoardDTO: PostBoardDto, userId: string): Promise<{ boardNo: number }> {
     this.logger.info('boardService.patchBoardService :: ', { boardNo, patchBoardDTO, userId });
     const patchBoard: Board = await this.checkWriter(boardNo, userId);
 
     patchBoard.boardTitle = patchBoardDTO.boardTitle;
-    patchBoard.boardContent = patchBoardDTO.content;
+    patchBoard.boardContent = patchBoardDTO.boardContent;
 
     await this.boardRepository.save(patchBoard);
 
@@ -168,14 +172,13 @@ export class BoardService {
    *   } BoardReplyDataDTO
    * }
    */
-  async getReplyPostDataService(boardNo: number): Promise<BoardReplyDataDTO> {
+  async getReplyDataService(boardNo: number): Promise<BoardReplyDataDTO> {
     const replyData: BoardReplyDataDTO | null = await this.boardRepository.getReplyData(boardNo);
 
     if(!replyData){
       this.logger.error('boardService.getReplyPostDataService NotFoundException. boardNo : ', boardNo);
       throw new NotFoundException();
     }
-
 
     return replyData;
   }

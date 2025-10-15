@@ -21,7 +21,7 @@ export class BoardReplyDataDTO {
   })
   boardIndent: number;
 
-  constructor(entity: Partial<Board>) {
+  constructor(entity?: Partial<Board>) {
     if(entity)
       Object.assign(this, entity);
   }
