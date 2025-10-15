@@ -94,8 +94,8 @@ describe('boardRepository', () => {
       boardRepository.create({
         boardNo: ++replyNoStart,
         userId: member.userId,
-        boardTitle: `testTitle${replyGroupNo}Reply1`,
-        boardContent: `testContent${replyGroupNo}Reply1`,
+        boardTitle: `testTitle28Reply1`,
+        boardContent: `testContent28Reply1`,
         boardGroupNo: replyGroupNo,
         boardUpperNo: `${replyGroupNo},${replyNoStart}`,
         boardIndent: 2,
@@ -106,8 +106,8 @@ describe('boardRepository', () => {
       boardRepository.create({
         boardNo: ++replyNoStart,
         userId: member.userId,
-        boardTitle: `testTitle${replyGroupNo}Reply2`,
-        boardContent: `testContent${replyGroupNo}Reply2`,
+        boardTitle: `testTitle28Reply2`,
+        boardContent: `testContent28Reply2`,
         boardGroupNo: replyGroupNo,
         boardUpperNo: `${replyGroupNo},${replyNoStart}`,
         boardIndent: 2,
@@ -118,8 +118,8 @@ describe('boardRepository', () => {
       boardRepository.create({
         boardNo: ++replyNoStart,
         userId: member.userId,
-        boardTitle: `testTitle${replyGroupNo}Reply3`,
-        boardContent: `testContent${replyGroupNo}Reply3`,
+        boardTitle: `testTitle28Reply3`,
+        boardContent: `testContent28Reply3`,
         boardGroupNo: replyGroupNo,
         boardUpperNo: `${replyGroupNo},${replyNoStart - 2},${replyNoStart}`,
         boardIndent: 3,
@@ -131,6 +131,8 @@ describe('boardRepository', () => {
   })
 
   afterAll(async () => {
+    await boardRepository.deleteAll();
+    await memberRepository.deleteAll();
     await dataSource.destroy();
 
     await app.close();

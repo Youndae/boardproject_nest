@@ -84,6 +84,8 @@ describe('authRepository', () => {
   });
 
   afterAll(async () => {
+    await authRepository.deleteAll();
+    await memberRepository.deleteAll();
     await dataSource.destroy();
 
     await app.close();

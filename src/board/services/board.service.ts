@@ -155,7 +155,7 @@ export class BoardService {
    */
   async deleteBoardService(boardNo: number, userId: string): Promise<void> {
     this.logger.info('boardService.deleteBoardService :: ', { boardNo, userId });
-    const board: Board = await this.checkWriter(boardNo, userId);
+    await this.checkWriter(boardNo, userId);
 
     await this.boardRepository.delete({ boardNo });
   }
