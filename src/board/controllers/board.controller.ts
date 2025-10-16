@@ -9,7 +9,7 @@ import {
   Post,
   Patch,
   Delete,
-  UseGuards, ParseIntPipe, ValidationPipe,
+  UseGuards, ParseIntPipe,
 } from '@nestjs/common';
 import { BoardService } from '#board/services/board.service';
 import { Roles } from '#common/decorators/roles.decorator';
@@ -38,9 +38,6 @@ import { ApiBearerCookie } from '#common/decorators/swagger/api-bearer-cookie.de
 import { PaginationDTO } from '#common/dtos/in/pagination.dto';
 import { UserStatusDTOMapper } from '#common/mapper/user-status.mapper';
 import { getAuthUserId } from '#common/utils/auth.utils';
-import { plainToInstance } from 'class-transformer';
-import { validate, ValidationError } from 'class-validator';
-import { BadRequestException } from '#common/exceptions/bad-request.exception';
 
 const ListResponseDTO = createListResponseDTO(BoardListResponseDTO, 'board');
 const DetailResponseDTO = createDetailResponseDTO(BoardDetailResponseDTO, 'boardDetail');

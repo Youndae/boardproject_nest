@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ImageBoardController } from './image-board.controller';
-import { ImageBoardService } from './image-board.service';
+import { ImageBoardController } from './controller/image-board.controller';
+import { ImageBoardService } from './services/image-board.service';
 import { ImageBoardRepository } from '#imageBoard/repositories/image-board.repository';
 import { ImageDataRepository } from '#imageBoard/repositories/image-data.repository';
 import { TypeOrmModule } from '@nestjs/typeorm';

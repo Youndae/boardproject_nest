@@ -194,3 +194,28 @@ REST API 구조로 프론트엔드 재활용을 통해 Nest만 집중한 경험 
 ## 25/10/08
 > Member Controller E2E 테스트   
 > Sharp, FileService Mocking 후 테스트.
+
+<br/>
+
+## 25/10/13
+> member Controller E2E 테스트 수정
+> board.controller, board.service 기본 틀 작성
+
+<br/>
+
+## 25/10/14
+> swagger 추가
+>> 패키지 추가 및 main.ts 기본 설정 추가. 정상 동작 확인
+
+<br/>
+
+## 25/10/15
+> board.controller swagger 정의 추가.   
+> board.repository 구현 및 테스트.   
+> board.service 구현 및 단위 / 통합 테스트.   
+> board.controller 구현. userStatusDTOMapper, auth.utils 추가.   
+
+<br/>
+
+## 25/10/16
+> Board Controller E2E 테스트
