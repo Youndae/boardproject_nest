@@ -7,4 +7,13 @@ export class ImageDataRepository extends Repository<ImageData> {
   constructor(private datasource: DataSource) {
     super(ImageData, datasource.manager);
   }
+
+  async getImageNameListByImageNo(imageNo: number): Promise<string[]> {
+    const result: ImageData[] = await this.find({
+      select: ['imageName'],
+      where: { imageNo }
+    });
+
+    return result.map((entity) => entity.imageName);
+  }
 }

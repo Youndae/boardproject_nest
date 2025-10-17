@@ -1,5 +1,15 @@
-import { BaseEntity, Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  BaseEntity,
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { Member } from '#member/entities/member.entity';
+import { ImageData } from '#imageBoard/entities/image-data.entity';
 
 @Entity({
   name: 'imageBoard'
@@ -23,4 +33,11 @@ export class ImageBoard extends BaseEntity {
   @ManyToOne(() => Member)
   @JoinColumn({ name: 'userId', referencedColumnName: 'userId'})
   member: Member;
+
+  @OneToMany(
+    () => ImageData,
+    (imageData) => imageData.imageBoard,
+    { eager: false }
+  )
+  imageDatas: ImageData[];
 }

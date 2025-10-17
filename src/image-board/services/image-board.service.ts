@@ -6,6 +6,23 @@ import { FileService } from '#common/services/file.service';
 import { LoggerService } from '#config/logger/logger.service';
 import { Transactional } from 'typeorm-transactional';
 import { ImageDataRepository } from '#imageBoard/repositories/image-data.repository';
+import { ImageBoardListResponseDTO } from '#imageBoard/dtos/out/image-board-list-response.dto';
+import { PaginationDTO } from '#common/dtos/in/pagination.dto';
+import { ImageBoardDetailResponseDTO } from '#imageBoard/dtos/out/image-board-detail-response.dto';
+import { NotFoundException } from '#common/exceptions/not-found.exception';
+import { ImageBoard } from '#imageBoard/entities/image-board.entity';
+import { AccessDeniedException } from '#common/exceptions/access-denied.exception';
+import { ImageBoardMapper } from '#imageBoard/mapper/image-board.mapper';
+import { ImageBoardPatchDataResponseDTO } from '#imageBoard/dtos/out/image-board-patch-data-response.dto';
+import type { Request } from 'express';
+import { PostImageBoardDTO } from '#imageBoard/dtos/in/post-image-board.dto';
+import { BadRequestException } from '#common/exceptions/bad-request.exception';
+import { getAuthUserId } from '#common/utils/auth.utils';
+import { ImageData } from '#imageBoard/entities/image-data.entity';
+import { ImageDataMapper } from '#imageBoard/mapper/image-data.mapper';
+import { PatchImageBoardDTO } from '#imageBoard/dtos/in/patch-image-board.dto';
+import { TooManyFilesException } from '#common/exceptions/too-many-files.exception';
+import { In } from 'typeorm';
 
 @Injectable()
 export class ImageBoardService {
@@ -26,7 +43,7 @@ export class ImageBoardService {
    * } pageDTO
    *
    * @returns {
-   *   list: ? [
+   *   list: ImageBoardListResponseDTO [
    *     {
    *       imageNo: number,
    *       imageTitle: string,
@@ -39,16 +56,20 @@ export class ImageBoardService {
    * }
    */
   @Transactional()
-  async getImageBoardListService(): Promise<void> {
-    // TODO: const listAndTotalElements: { list: ?[], totalElements: number } = await this.imageBoardRepository.getImageBoardList(pageDTO);
+  async getImageBoardListService(pageDTO: PaginationDTO): Promise<{
+    list: ImageBoardListResponseDTO[],
+    totalElements: number,
+  }> {
+    const listAndTotalElements: {
+      list: ImageBoardListResponseDTO[],
+      totalElements: number;
+    } = await this.imageBoardRepository.getImageBoardList(pageDTO);
 
-    // TODO: return listAndTotalElements;
+    return listAndTotalElements;
   }
 
   /**
-   * @param{
-   *   imageNo: number
-   * }
+   * @param imageNo
    *
    * @returns {
    *   imageNo: number,
@@ -63,17 +84,18 @@ export class ImageBoardService {
    *       imageStep: number
    *     }
    *   ]
-   * }
+   * }: ImageBoardDetailResponseDTO
    *
    * Not found
    * @exception 404 NOT_FOUND
    */
-  async getImageBoardDetailService(): Promise<void> {
-    // TODO: const boardDetail: ? = await this.imageBoardRepository.getImageBoardDetail(imageNo);
+  async getImageBoardDetailService(imageNo: number): Promise<ImageBoardDetailResponseDTO> {
+    const boardDetail: ImageBoardDetailResponseDTO | null = await this.imageBoardRepository.getImageBoardDetail(imageNo);
 
-    // TODO: if(!boardDetail) throw new NotFoundException();
+    if(!boardDetail)
+      throw new NotFoundException();
 
-    // TODO: return boardDetail;
+    return boardDetail;
   }
 
   /**
@@ -85,27 +107,35 @@ export class ImageBoardService {
    *
    * @return { imageNo: number }
    */
-  async postImageBoardService(): Promise<void> {
-    // TODO: let imageData: { imageName: string, originName: string } | undefined; => []
-    // TODO: destDir: string = this.configService.get<string>('BOARD_FILE_PATH') ?? '';
+  @Transactional()
+  async postImageBoardService(postDTO: PostImageBoardDTO, req: Request): Promise<void> {
+    const userId: string = getAuthUserId(req);
+    const files = req.files as Express.Multer.File[];
+    if(!files || files.length < 1){
+      this.logger.error('postImageBoard file is undefined. userId : ', userId);
+      throw new BadRequestException();
+    }
 
-    // TODO: try-catch
-    // TODO: try
-    // TODO: if(req.file)
-    // TODO: const { filename: storedFilename, originName: ?? } = req.files; => []
-    // TODO: storedFilename.forEach((file) => await this.resizing.resizeBoardImage(destDir, file)); => ?
-    // TODO: imageData = ?? => storedFilename 배열을 담는 { imageName: storedFilename, originName: originName }[]
-    // TODO: end if
-    // TODO: const saveImageBoard: ImageBoard = await mapper.toEntityByPostDTO(postDTO);
-    // TODO: const saveImageData: ImageData[] = await mapper.toEntityByImageDataArray(imageData);
-    // TODO: const saveBoardNo: number = await imageBoardRepository.save(saveImageBoard).imageNo;
-    // TODO: saveImageData.forEach((data) => data.imageNo = saveBoardNo);
-    // TODO: await imageDataRepository.save(saveImageData);
+    const boardImages: { imageName: string, originName: string}[] = files.map(file => ({
+      imageName: file.filename,
+      originName: file.originalname
+    }));
+    const destDir: string = this.configService.get<string>('BOARD_FILE_PATH') ?? '';
+    const images = boardImages.map(image => image.imageName);
 
-    // TODO: catch
-    // TODO: if(imageData)
-    // TODO: imageData.forEach((data) => fileService.deleteFile(`${destDir}/${data.imageName}`));
-    // TODO: throw
+    try {
+      await this.resizing.resizeBoardImages(destDir, images);
+
+      const imageBoard: ImageBoard = ImageBoardMapper.toEntityByPostImageBoardDTO(postDTO, userId);
+      const saveBoard: ImageBoard = await this.imageBoardRepository.save(imageBoard);
+
+      const saveImageData: ImageData[] = ImageDataMapper.toEntityByImageNameObject(boardImages, saveBoard.imageNo);
+      await this.imageDataRepository.save(saveImageData);
+    }catch(error) {
+      this.logger.error('postImageBoardService error.', error);
+
+      await this.fileService.deleteBoardFiles(destDir, images);
+    }
   }
 
   /**
@@ -116,75 +146,103 @@ export class ImageBoardService {
    *   imageNo: number,
    *   imageTitle: string,
    *   imageContent: string,
-   *   imageData: string[{ imageName: string }]
+   *   imageData: string[]
    * }
    */
-  async getPatchDataService(): Promise<void> {
-    // TODO: const imageBoard: ImageBoard = this.checkWriter(imageNo, userId);
+  async getPatchDataService(imageNo: number, userId: string): Promise<ImageBoardPatchDataResponseDTO> {
+    const boardDetail: ImageBoardDetailResponseDTO | null = await this.imageBoardRepository.getImageBoardDetail(imageNo);
 
-    // TODO: return new ?(imageBoard);
+    if(!boardDetail)
+      throw new NotFoundException();
+
+    if(boardDetail.userId !== userId)
+      throw new AccessDeniedException();
+
+    return ImageBoardMapper.convertDetailDTOToPatchDataDTO(boardDetail);
   }
 
   /**
+   * @param imageNo
    * @param{
    *   imageTitle: string,
    *   imageContent: string,
-   *   deleteFiles?: string[{ imageName: string }]
+   *   deleteFiles?: string[]
    * } patchDTO
    * @param req
    *
    * @returns { imageNo: number }
    */
-  async patchImageBoardService(): Promise<void> {
-    // TODO: const patchBoard: ImageBoard = await this.checkWriter(imageNo, userId);
-    // TODO: let imageData: { imageName: string, originName: string } | undefined; => []
-    // TODO: destDir: string = this.configService.get<string>('BOARD_FILE_PATH') ?? '';
+  @Transactional()
+  async patchImageBoardService(imageNo: number, patchDTO: PatchImageBoardDTO, req: Request): Promise<void> {
+    const userId: string = getAuthUserId(req);
+    const patchBoard: ImageBoard = await this.checkWriter(imageNo, userId);
+    const files = req.files as Express.Multer.File[] ?? [];
+    const destDir: string = this.configService.get<string>('BOARD_FILE_PATH') ?? '';
+    const boardImages: { imageName: string, originName: string}[] = [];
+    const images: string[] = [];
+    if(files.length > 0) {
+      files.forEach(file => {
+        boardImages.push({
+          imageName: file.filename,
+          originName: file.originalname
+        })
+        images.push(file.filename);
+      })
+    }
+    const originImageDataList: ImageData[] = await this.imageDataRepository.find({ where: { imageNo }, order: { imageStep: 'ASC'} });
 
-    // TODO: try-catch
-    // TODO: try
-    // TODO: const imageDataList: ImageData[] = await this.imageDataRepository.find({ where: { imageNo } });
-    // TODO: const deleteFilesSize = patchDTO.deleteFiles ? patchDTO.deleteFiles.length : 0;
-    // TODO: if((imageDataList - deleteFileSize + req.files.length) > 5) throw TooManyFilesException();
-    // TODO: if(req.file)
-    // TODO: const { filename: storedFilename, originName: ?? } = req.files; => []
-    // TODO: storedFilename.forEach((file) => await this.resizing.resizeBoardImage(destDir, file)); => ?
-    // TODO: imageData = ?? => storedFilename 배열을 담는 { imageName: storedFilename, originName: originName }[]
-    // TODO: end if
-    // TODO: patchBoard.title = patchDTO.title; patchBoard.content = patchDTO.content;
-    // TODO: const saveImageData: ImageData[] = await mapper.toEntityByImageDataArrayAndStep(imageData, imageData[length - 1].step + 1);
-    // TODO: const saveBoardNo: number = await imageBoardRepository.save(saveImageBoard).imageNo;
-    // TODO: saveImageData.forEach((data) => data.imageNo = saveBoardNo);
-    // TODO: await imageDataRepository.save(saveImageData);
-    // TODO: if(deleteFiles)
-    // TODO: await this.imageDataRepository.deleteImageData(deleteFiles);
-    // TODO: deleteFiles.forEach((imageName) => {const deleteFilename = imageName.replace('/board/', '');
-    // TODO;                                        fileService.deleteFiles(`${destDir}/${deleteFilename}`)});
-    // TODO: end if
+    if((originImageDataList.length - (patchDTO.deleteFiles?.length ?? 0) + images.length) > 5)
+      throw new TooManyFilesException();
 
-    // TODO: catch
-    // TODO: if(imageData)
-    // TODO: imageData.forEach((data) => fileService.deleteFile(`${destDir}/${data.imageName}`));
-    // TODO: throw
+    try {
+      if(images.length > 0) {
+        await this.resizing.resizeBoardImages(destDir, images);
+        const maxImageStep = originImageDataList[originImageDataList.length - 1].imageStep;
+        const saveImageData: ImageData[] = ImageDataMapper.toEntityByImageNameObject(boardImages, imageNo, maxImageStep);
+
+        await this.imageDataRepository.save(saveImageData);
+      }
+
+      patchBoard.imageTitle = patchDTO.imageTitle;
+      patchBoard.imageContent = patchDTO.imageContent;
+      await this.imageBoardRepository.save(patchBoard);
+
+      if(patchDTO.deleteFiles){
+        await this.imageDataRepository.delete({ imageName: In(patchDTO.deleteFiles) })
+        await this.fileService.deleteBoardFiles(destDir, patchDTO.deleteFiles);
+      }
+    }catch(error) {
+      this.logger.error('patchImageBoardService error.', error);
+
+      if(images.length > 0)
+        await this.fileService.deleteBoardFiles(destDir, images);
+    }
   }
 
   /**
-   * @param imageNo: number
-   * @param userId: string
+   * @param imageNo
+   * @param userId
    *
    * @return void
    */
   @Transactional()
-  async deleteImageBoard(): Promise<void> {
-    // TODO: const deleteBoard: ImageBoard = await this.checkWriter(imageNo, userId);
-    // TODO: const deleteImageData: string[] = await this.imageDataRepository.find({ where: { imageNo } });
-    // TODO: await this.imageDataRepository.delete({ where: { imageNo } });
-    // TODO: await this.imageBoardRepository.delete({ where: { imageNo } });
-
-    // TODO: try-catch
-    // TODO: try
-    // TODO: deleteImageData.forEach((imageName) => { const deleteFilename = replace(...); fileService.deleteFile(...) })
-    // TODO: catch
-    // TODO: logger
+  async deleteImageBoard(imageNo: number, userId: string): Promise<void> {
+    const destDir: string = this.configService.get<string>('BOARD_FILE_PATH') ?? '';
+    await this.checkWriter(imageNo, userId);
+    const deleteImageData: string[] = await this.imageDataRepository.getImageNameListByImageNo(imageNo);
+    
+    await this.imageDataRepository.delete({ imageNo });
+    await this.imageBoardRepository.delete({ imageNo });
+    
+    try {
+      deleteImageData.forEach(fileName => {
+        const replaceName = fileName.replace('/board', '');
+        this.fileService.deleteFile(`${destDir}${replaceName}`)
+      });
+    }catch(error) {
+      this.logger.error('deleteImageBoard file delete error.', error);
+      this.logger.error('deleteImageBoard file name list is ', deleteImageData);
+    }
   }
 
   /**
@@ -202,5 +260,15 @@ export class ImageBoardService {
    * writer not equals
    * @exception 403 ACCESS_DENIED
    */
-  private async checkWriter(): Promise<void> {}
+  private async checkWriter(imageNo: number, userId: string): Promise<ImageBoard> {
+    const imageBoard: ImageBoard | null = await this.imageBoardRepository.findOne({ where: { imageNo } });
+
+    if(!imageBoard)
+      throw new NotFoundException();
+
+    if(imageBoard.userId !== userId)
+      throw new AccessDeniedException();
+
+    return imageBoard;
+  }
 }

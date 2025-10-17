@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import multer, { MulterError } from 'multer';
 import { createStorage, imageFileFilter, getMaxFileSize } from '#config/file/upload.config';
 import { generateStoredFilename } from '#common/utils/file.util';
-import { BadRequestException } from '#common/exceptions/badRequest.exception';
+import { BadRequestException } from '#common/exceptions/bad-request.exception';
 import { TooManyFilesException } from '../exceptions/too-many-files.exception';
 import { FileExtensionNotAllowedException } from '../exceptions/file-extension-not-allowed.exception';
 import { FileSizeTooLargeException } from '../exceptions/file-size-too-large.exception';
