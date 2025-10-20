@@ -13,6 +13,7 @@ import { ImageBoardModule } from '#imageBoard/image-board.module';
 import { Member } from '#member/entities/member.entity';
 import { PaginationDTO } from '#common/dtos/in/pagination.dto';
 import { ImageBoardListResponseDTO } from '#imageBoard/dtos/out/image-board-list-response.dto';
+import { ImageBoardDetailResponseDTO } from '#imageBoard/dtos/out/image-board-detail-response.dto';
 
 describe('imageBoardRepository', () => {
   let memberRepository: MemberRepository;
@@ -93,7 +94,7 @@ describe('imageBoardRepository', () => {
           imageDataRepository.create({
             imageName: `board/${saveBoard.imageTitle}'sImage${i}.jpg`,
             imageNo: saveBoard.imageNo,
-            oldName: `${saveBoard.imageTitle}'sOriginName.jpg`,
+            oldName: `${saveBoard.imageTitle}'sOriginName${i}.jpg`,
             imageStep: i
           })
         );
@@ -230,7 +231,49 @@ describe('imageBoardRepository', () => {
       expect(result.list).toStrictEqual([]);
       expect(result.totalElements).toBe(0);
     });
+
+    it('정상 조회. 2페이지 조회', async () => {
+      const pageDTO: PaginationDTO = new PaginationDTO();
+      pageDTO.pageNum = 2;
+
+      const result: {
+        list: ImageBoardListResponseDTO[],
+        totalElements: number
+      } = await imageBoardRepository.getImageBoardList(pageDTO);
+
+      const page2ElementsCount: number = boardListCount - boardAmount;
+
+      expect(result.list.length).toBe(page2ElementsCount);
+      expect(result.totalElements).toBe(boardListCount);
+
+      let listNumber: number = page2ElementsCount - 1;
+      result.list.forEach(dto =>
+        expect(dto.imageTitle.endsWith(`Title${listNumber--}`))
+      );
+    });
   });
 
+  describe('getImageBoardDetail', () => {
+    it('정상 조회.', async () => {
+      const result: ImageBoardDetailResponseDTO | null = await imageBoardRepository.getImageBoardDetail(testBoard.imageNo);
 
+      expect(result).not.toBeNull();
+      expect(result?.imageTitle).toBe(testBoard.imageTitle);
+      expect(result?.imageContent).toBe(testBoard.imageContent);
+      expect(result?.imageData).not.toStrictEqual([]);
+      let imageStep: number = 0;
+      for(const imageData of result!.imageData) {
+        expect(imageData.imageName).toBe(`board/${testBoard.imageTitle}'sImage${imageStep}.jpg`);
+        expect(imageData.oldName).toBe(`${testBoard.imageTitle}'sOriginName${imageStep}.jpg`);
+        expect(imageData.imageStep).toBe(imageStep);
+        imageStep++;
+      }
+    });
+
+    it('게시글 번호가 잘못된 경우', async () => {
+      const result: ImageBoardDetailResponseDTO | null = await imageBoardRepository.getImageBoardDetail(0);
+
+      expect(result).toBeNull();
+    })
+  })
 })
