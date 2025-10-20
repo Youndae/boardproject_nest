@@ -9,7 +9,7 @@ export class ImageData extends BaseEntity {
   @Column({ type: 'varchar', length: 255, primary: true })
   imageName: string;
 
-  @Column({ type: 'bigint', nullable: false })
+  @Column({ type: 'bigint', nullable: false, unsigned: true })
   imageNo: number;
 
   @Column({ type: 'varchar', length: 255, nullable: false })
@@ -18,11 +18,13 @@ export class ImageData extends BaseEntity {
   @Column({ type: 'int', nullable: false })
   imageStep: number;
 
-  @ManyToOne(() => Member)
-  @JoinColumn({ name: 'userId', referencedColumnName: 'userId' })
-  member: Member;
-
-  @ManyToOne(() => ImageBoard)
+  @ManyToOne(
+    () => ImageBoard,
+    {
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE'
+    }
+  )
   @JoinColumn({ name: 'imageNo', referencedColumnName: 'imageNo'})
   imageBoard: ImageBoard;
 }

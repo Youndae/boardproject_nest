@@ -51,7 +51,7 @@ export class ImageBoardRepository extends Repository<ImageBoard> {
             param.push(keyword);
             break;
         default:
-            break;
+            return { list: [], totalElements: 0}
       }
     }
 
