@@ -55,7 +55,6 @@ export class ImageBoardService {
    *   totalElements: number
    * }
    */
-  @Transactional()
   async getImageBoardListService(pageDTO: PaginationDTO): Promise<{
     list: ImageBoardListResponseDTO[],
     totalElements: number,

@@ -46,13 +46,12 @@ describe('boardService unitTest', () => {
       const pageDTO: PaginationDTO = new PaginationDTO();
       boardRepository.getBoardList?.mockResolvedValue({ list: [], totalElements: 0});
 
-      const result: { list: BoardListResponseDTO[], empty: boolean, totalElements: number } = await boardService.getListService(pageDTO);
+      const result: { list: BoardListResponseDTO[], totalElements: number } = await boardService.getListService(pageDTO);
 
       expect(result).not.toBeNull();
       expect(result.list.length).toBe(0);
       expect(result.list).toStrictEqual([]);
       expect(result.totalElements).toBe(0);
-      expect(result.empty).toBeTruthy();
     });
 
     it('데이터가 있는 경우', async () => {
@@ -68,11 +67,10 @@ describe('boardService unitTest', () => {
       ]
       boardRepository.getBoardList?.mockResolvedValue({ list: boardData, totalElements: 1});
 
-      const result: { list: BoardListResponseDTO[], empty: boolean, totalElements: number } = await boardService.getListService(pageDTO);
+      const result: { list: BoardListResponseDTO[], totalElements: number } = await boardService.getListService(pageDTO);
 
       expect(result).not.toBeNull();
       expect(result.list.length).toBe(1);
-      expect(result.empty).toBeFalsy();
       expect(result.totalElements).toBe(1);
     })
   });
