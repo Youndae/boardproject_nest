@@ -357,7 +357,7 @@ describe('image-board.service Integration', () => {
 
     it('req.files가 undefined인 경우', async () => {
       const reqFixture = getReq();
-      const req = {
+      const req: any = {
         user: reqFixture.user,
       };
 
@@ -376,7 +376,7 @@ describe('image-board.service Integration', () => {
 
     it('req.files가 []인 경우', async () => {
       const reqFixture = getReq();
-      const req = {
+      const req: any = {
         user: reqFixture.user,
         files: []
       };
@@ -475,7 +475,7 @@ describe('image-board.service Integration', () => {
 
     it('정상 처리. 파일 추가 없이 삭제와 데이터 갱신', async () => {
       const user = getReq().user;
-      const req = { user };
+      const req: any = { user };
       patchDTO.deleteFiles = [testBoardImageData[0].imageName];
 
       (resizingService.resizeBoardImages as jest.Mock)
@@ -523,7 +523,7 @@ describe('image-board.service Integration', () => {
 
     it('파일 추가 없이 모든 파일을 삭제하는 요청인 경우', async () => {
       const user = getReq().user;
-      const req = { user };
+      const req: any = { user };
       patchDTO.deleteFiles = testBoardImageData.map(data => data.imageName);
 
       (resizingService.resizeBoardImages as jest.Mock)
@@ -558,7 +558,7 @@ describe('image-board.service Integration', () => {
 
     it('삭제할 파일명 중 해당 게시글의 파일명이 아니고 추가하는 파일이 없는 경우', async () => {
       const user = getReq().user;
-      const req = { user };
+      const req: any = { user };
       patchDTO.deleteFiles = ['board/wrongFileName.png'];
 
       (resizingService.resizeBoardImages as jest.Mock)
