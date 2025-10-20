@@ -107,7 +107,7 @@ export class ImageBoardService {
    * @return { imageNo: number }
    */
   @Transactional()
-  async postImageBoardService(postDTO: PostImageBoardDTO, req: Request): Promise<void> {
+  async postImageBoardService(postDTO: PostImageBoardDTO, req: Request): Promise<{ imageNo: number }> {
     const userId: string = getAuthUserId(req);
     const files = req.files as Express.Multer.File[];
     if(!files || files.length < 1){
@@ -130,10 +130,14 @@ export class ImageBoardService {
 
       const saveImageData: ImageData[] = ImageDataMapper.toEntityByImageNameObject(boardImages, saveBoard.imageNo);
       await this.imageDataRepository.save(saveImageData);
+
+      return { imageNo: saveBoard.imageNo };
     }catch(error) {
       this.logger.error('postImageBoardService error.', error);
 
       await this.fileService.deleteBoardFiles(destDir, images);
+
+      throw error;
     }
   }
 
@@ -172,7 +176,7 @@ export class ImageBoardService {
    * @returns { imageNo: number }
    */
   @Transactional()
-  async patchImageBoardService(imageNo: number, patchDTO: PatchImageBoardDTO, req: Request): Promise<void> {
+  async patchImageBoardService(imageNo: number, patchDTO: PatchImageBoardDTO, req: Request): Promise<{ imageNo: number }> {
     const userId: string = getAuthUserId(req);
     const patchBoard: ImageBoard = await this.checkWriter(imageNo, userId);
     const files = req.files as Express.Multer.File[] ?? [];
@@ -190,8 +194,33 @@ export class ImageBoardService {
     }
     const originImageDataList: ImageData[] = await this.imageDataRepository.find({ where: { imageNo }, order: { imageStep: 'ASC'} });
 
-    if((originImageDataList.length - (patchDTO.deleteFiles?.length ?? 0) + images.length) > 5)
+    if((originImageDataList.length - (patchDTO.deleteFiles?.length ?? 0) + images.length) > 5){
+      await this.fileService.deleteBoardFiles(destDir, images);
       throw new TooManyFilesException();
+    }
+
+
+    // 삭제 파일 목록이 전달되었으나, 기존 파일명과 일치하지 않는 데이터가 있다면
+    // BAD_REQUEST
+    if(patchDTO.deleteFiles && patchDTO.deleteFiles.length > 0){
+
+      // 추가할 이미지 파일이 없으나,
+      // 기존 파일을 모두 삭제하는 요청이라면 BAD_REQUEST
+      if(images.length === 0 && patchDTO.deleteFiles.length === originImageDataList.length)
+        throw new BadRequestException();
+
+      const originImageNameList: string[] = originImageDataList.map(entity => entity.imageName);
+
+      patchDTO.deleteFiles.forEach(name => {
+        if(!originImageNameList.includes(name)){
+          if(images.length > 0)
+            this.fileService.deleteBoardFiles(destDir, images);
+
+          throw new BadRequestException();
+        }
+
+      })
+    }
 
     try {
       if(images.length > 0) {
@@ -208,14 +237,25 @@ export class ImageBoardService {
 
       if(patchDTO.deleteFiles){
         await this.imageDataRepository.delete({ imageName: In(patchDTO.deleteFiles) })
-        await this.fileService.deleteBoardFiles(destDir, patchDTO.deleteFiles);
       }
     }catch(error) {
       this.logger.error('patchImageBoardService error.', error);
 
       if(images.length > 0)
         await this.fileService.deleteBoardFiles(destDir, images);
+
+      throw error;
     }
+
+    try {
+      if(patchDTO.deleteFiles)
+        await this.fileService.deleteBoardFiles(destDir, patchDTO.deleteFiles);
+    }catch (error) {
+      this.logger.error('patchImageBoardService deleteBoardFiles error.', error);
+      this.logger.error('patchImageBoardService deleteBoardFiles filename : ', patchDTO.deleteFiles);
+    }
+
+    return { imageNo };
   }
 
   /**
@@ -234,10 +274,7 @@ export class ImageBoardService {
     await this.imageBoardRepository.delete({ imageNo });
     
     try {
-      deleteImageData.forEach(fileName => {
-        const replaceName = fileName.replace('/board', '');
-        this.fileService.deleteFile(`${destDir}${replaceName}`)
-      });
+      await this.fileService.deleteBoardFiles(destDir, deleteImageData);
     }catch(error) {
       this.logger.error('deleteImageBoard file delete error.', error);
       this.logger.error('deleteImageBoard file name list is ', deleteImageData);
