@@ -7,7 +7,7 @@ export class PostImageBoardDTO {
     example: 'testImageBoardTitle',
     description: '게시글 제목'
   })
-  @IsDefined({ message: 'imageTitle sholud not be null or undefined'})
+  @IsDefined({ message: 'imageTitle should not be null or undefined'})
   @IsString()
   @Length(2, 50, { message: 'imageTitle must be longer than or equal to 2 characters' })
   imageTitle: string;

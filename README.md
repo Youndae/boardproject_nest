@@ -221,6 +221,19 @@ REST API 구조로 프론트엔드 재활용을 통해 Nest만 집중한 경험 
 > Board Controller E2E 테스트
 > imageBoard Controller, service 기본 틀 작성
 
+<br/>
+
 ## 25/10/17
 > ImageBoardRepository, ImageDataRepository, ImageBoardService 구현.   
 > ImageBoardMapper, ImageDataMapper, 각 DTO 생성
+
+<br/>
+
+## 25/10/20
+> ImageBoardRepository 테스트   
+> ImageBoardService unit, integration 테스트
+
+<br/>
+
+## 25/10/21
+> ImageBoardController 구현

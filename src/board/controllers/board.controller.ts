@@ -93,7 +93,7 @@ export class BoardController {
   @HttpCode(200)
   @ApiOperation({ summary: '게시글 목록 조회' })
   @ApiOkResponse({
-    description: '정상 처리',
+    description: '정상 조회',
     schema: {
       allOf: [
         { $ref: getSchemaPath(ListResponseDTO) },
@@ -146,7 +146,10 @@ export class BoardController {
       $ref: getSchemaPath(DetailResponseDTO)
     },
   })
-  async getDetail(@Param('boardNo', ParseIntPipe) boardNo: number, @Req() req: Request): Promise<InstanceType<typeof DetailResponseDTO>> {
+  async getDetail(
+    @Param('boardNo', ParseIntPipe) boardNo: number,
+    @Req() req: Request
+  ): Promise<InstanceType<typeof DetailResponseDTO>> {
     const boardDetail: BoardDetailResponseDTO = await this.boardService.getDetailService(boardNo);
     const userStatus: UserStatusDTO = UserStatusDTOMapper.createUserStatusByReq(req);
 
