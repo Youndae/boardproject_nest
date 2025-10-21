@@ -11,10 +11,10 @@ export class Comment extends BaseEntity {
   commentNo: number;
 
   @Column({ type: 'bigint', unsigned: true, nullable: true })
-  boardNo: number;
+  boardNo: number | null;
 
   @Column({ type: 'bigint', unsigned: true, nullable: true })
-  imageNo: number;
+  imageNo: number | null;
 
   @Column({ type: 'varchar', length: 50, nullable: false })
   userId: string;
