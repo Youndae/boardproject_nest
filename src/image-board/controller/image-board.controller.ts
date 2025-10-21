@@ -188,7 +188,6 @@ export class ImageBoardController {
     @Body()postDTO: PostImageBoardDTO,
     @Req() req: Request
   ): Promise<{ imageNo: number }>{
-
     return await this.imageboardService.postImageBoardService(postDTO, req);
   }
 

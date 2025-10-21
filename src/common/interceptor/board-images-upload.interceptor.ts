@@ -54,7 +54,7 @@ export class BoardImagesUploadInterceptor implements NestInterceptor {
 				if(req.method === 'POST' && files.length < 1)
 					return reject(new BadRequestException('At least one image is required'));
 
-				resolve(next.handle().toPromise());
+				resolve(next.handle());
 			});
 		});
 	}
