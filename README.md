@@ -236,4 +236,6 @@ REST API 구조로 프론트엔드 재활용을 통해 Nest만 집중한 경험 
 <br/>
 
 ## 25/10/21
-> ImageBoardController 구현
+> ImageBoardController 구현   
+> ImageBoardController E2E 테스트
+> ImageBoard 마무리.
