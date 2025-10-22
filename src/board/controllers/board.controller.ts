@@ -17,6 +17,7 @@ import { RolesGuard } from '#common/guards/roles.guard';
 import type { Request } from 'express';
 import { PostBoardDto } from '#board/dtos/in/post-board.dto';
 import {
+  ApiBadRequestResponse,
   ApiBody, ApiForbiddenResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse,
   ApiOkResponse, ApiOperation,
   ApiParam,
@@ -40,6 +41,11 @@ import { UserStatusDTOMapper } from '#common/mapper/user-status.mapper';
 import { getAuthUserId } from '#common/utils/auth.utils';
 import { ResponseStatusConstants } from '#common/constants/response-status.constants';
 import { ApiAuthExceptionResponse } from '#common/decorators/swagger/api-auth-exception-response.decorator';
+import {
+  PostBoardBadRequestExamples,
+  PostBoardReplyBadRequestExamples,
+} from '#board/swagger/examples/board-error.example';
+
 
 const ListResponseDTO = createListResponseDTO(BoardListResponseDTO, 'board');
 const DetailResponseDTO = createDetailResponseDTO(BoardDetailResponseDTO, 'boardDetail');
@@ -216,6 +222,14 @@ export class BoardController {
     }
   )
   @ApiAuthExceptionResponse()
+  @ApiBadRequestResponse({
+    description: '요청 데이터 오류',
+    content: {
+      'application/json': {
+        examples: PostBoardBadRequestExamples
+      }
+    }
+  })
   async postBoard(@Body() postBoardDTO: PostBoardDto, @Req() req: Request): Promise<{ boardNo: number }> {
     const userId: string = getAuthUserId(req);
 
@@ -341,6 +355,14 @@ export class BoardController {
     example: {
       statusCode: ResponseStatusConstants.ACCESS_DENIED.CODE,
       message: ResponseStatusConstants.ACCESS_DENIED.MESSAGE
+    }
+  })
+  @ApiBadRequestResponse({
+    description: '요청 데이터 오류',
+    content: {
+      'application/json': {
+        examples: PostBoardBadRequestExamples
+      }
     }
   })
   async patchBoard(
@@ -507,6 +529,14 @@ export class BoardController {
     example: {
       statusCode: ResponseStatusConstants.NOT_FOUND.CODE,
       message: ResponseStatusConstants.NOT_FOUND.MESSAGE
+    }
+  })
+  @ApiBadRequestResponse({
+    description: '요청 데이터 오류',
+    content: {
+      'application/json': {
+        examples: PostBoardReplyBadRequestExamples
+      }
     }
   })
   async postReply(@Body() replyDTO: PostReplyDTO, @Req() req: Request): Promise<{ boardNo: number }> {

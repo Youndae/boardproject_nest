@@ -141,7 +141,7 @@ export class MemberService {
       if(patchProfileDTO.deleteProfile)
         member.profileThumbnail = null;
 
-      member.nickName = patchProfileDTO.nickname === '' ? null : patchProfileDTO.nickname;
+      member.nickName = patchProfileDTO.nickname ?? null;
       member.profileThumbnail = profileThumbnail ? `profile/${profileThumbnail?.imageName}` : member.profileThumbnail;
 
       await this.memberRepository.save(member);

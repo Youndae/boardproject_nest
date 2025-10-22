@@ -44,6 +44,10 @@ import { ApiNoContentVoid } from '#common/decorators/swagger/no-content-void.dec
 import { ApiImageBoardExtraModels } from '#imageBoard/swagger/decorator/image-board-extra-models.decorator';
 import { ResponseStatusConstants } from '#common/constants/response-status.constants';
 import { ApiAuthExceptionResponse } from '#common/decorators/swagger/api-auth-exception-response.decorator';
+import {
+  PatchImageBoardBadRequestExamples,
+  PostImageBoardBadRequestExamples,
+} from '#imageBoard/swagger/example/image-board-error.example';
 
 const ListResponseDTO = createListResponseDTO(ImageBoardListResponseDTO, 'imageBoard');
 const DetailResponseDTO = createDetailResponseDTO(ImageBoardDetailResponseDTO, 'imageBoardDetail');
@@ -234,43 +238,7 @@ export class ImageBoardController {
     description: '요청 데이터 오류',
     content: {
       'application/json': {
-        examples: {
-          no_file: {
-            summary: '파일 누락',
-            value: {
-              statusCode: ResponseStatusConstants.BAD_REQUEST.CODE,
-              message: ResponseStatusConstants.BAD_REQUEST.MESSAGE
-            }
-          },
-          title_undefined: {
-            summary: '제목 필드 누락',
-            value: {
-              statusCode: ResponseStatusConstants.BAD_REQUEST.CODE,
-              message: 'imageTitle should not be null or undefined'
-            }
-          },
-          title_to_short: {
-            summary: '제목 필드 짧음',
-            value: {
-              statusCode: ResponseStatusConstants.BAD_REQUEST.CODE,
-              message: 'imageTitle must be longer than or equal to 2 characters'
-            }
-          },
-          content_undefined: {
-            summary: '내용 필드 누락',
-            value: {
-              statusCode: ResponseStatusConstants.BAD_REQUEST.CODE,
-              message: 'imageContent should not be null or undefined'
-            }
-          },
-          content_blank: {
-            summary: '내용 필드 blank',
-            value: {
-              statusCode: ResponseStatusConstants.BAD_REQUEST.CODE,
-              message: 'imageContent is not empty'
-            }
-          }
-        }
+        examples: PostImageBoardBadRequestExamples
       }
     }
   })
@@ -321,6 +289,20 @@ export class ImageBoardController {
     description: '정상 조회',
     schema: {
       $ref: getSchemaPath(PatchDetailResponseDTO)
+    }
+  })
+  @ApiNotFoundResponse({
+    description: '데이터 없음',
+    example: {
+      statusCode: ResponseStatusConstants.NOT_FOUND.CODE,
+      message: ResponseStatusConstants.NOT_FOUND.MESSAGE
+    }
+  })
+  @ApiForbiddenResponse({
+    description: '작성자 불일치',
+    example: {
+      statusCode: ResponseStatusConstants.ACCESS_DENIED.CODE,
+      message: ResponseStatusConstants.ACCESS_DENIED.MESSAGE
     }
   })
   async getPatchDetailData(
@@ -383,6 +365,28 @@ export class ImageBoardController {
       example: { boardNo: 1 }
     }
   })
+  @ApiNotFoundResponse({
+    description: '데이터 없음',
+    example: {
+      statusCode: ResponseStatusConstants.NOT_FOUND.CODE,
+      message: ResponseStatusConstants.NOT_FOUND.MESSAGE
+    }
+  })
+  @ApiForbiddenResponse({
+    description: '작성자 불일치',
+    example: {
+      statusCode: ResponseStatusConstants.ACCESS_DENIED.CODE,
+      message: ResponseStatusConstants.ACCESS_DENIED.MESSAGE
+    }
+  })
+  @ApiBadRequestResponse({
+    description: '요청 데이터 오류',
+    content: {
+      'application/json': {
+        examples: PatchImageBoardBadRequestExamples
+      }
+    }
+  })
   async patchImageBoard(
     @Param('imageNo', ParseIntPipe) imageNo: number,
     @Body() patchDTO: PatchImageBoardDTO,
@@ -417,6 +421,20 @@ export class ImageBoardController {
     type: Number
   })
   @ApiNoContentVoid('삭제 완료')
+  @ApiNotFoundResponse({
+    description: '데이터 없음',
+    example: {
+      statusCode: ResponseStatusConstants.NOT_FOUND.CODE,
+      message: ResponseStatusConstants.NOT_FOUND.MESSAGE
+    }
+  })
+  @ApiForbiddenResponse({
+    description: '작성자 불일치',
+    example: {
+      statusCode: ResponseStatusConstants.ACCESS_DENIED.CODE,
+      message: ResponseStatusConstants.ACCESS_DENIED.MESSAGE
+    }
+  })
   async deleteImageBoard(
     @Param('imageNo', ParseIntPipe) imageNo: number,
     @Req() req: Request

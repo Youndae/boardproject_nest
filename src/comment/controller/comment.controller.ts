@@ -23,7 +23,7 @@ import { getAuthUserId } from '#common/utils/auth.utils';
 import { CommentPostReplyRequestDTO } from '#comment/dtos/in/comment-post-reply-request.dto';
 import {
   ApiBadRequestResponse,
-  ApiExtraModels,
+  ApiExtraModels, ApiInternalServerErrorResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
@@ -35,6 +35,11 @@ import { Roles } from '#common/decorators/roles.decorator';
 import { RolesGuard } from '#common/guards/roles.guard';
 import { ApiBearerCookie } from '#common/decorators/swagger/api-bearer-cookie.decorator';
 import { ApiNoContentVoid } from '#common/decorators/swagger/no-content-void.decorator';
+import {
+  PostCommentBadRequestExamples,
+  PostCommentReplyBadRequestExamples,
+} from '#comment/swagger/examples/comment-error.example';
+import { ResponseStatusConstants } from '#common/constants/response-status.constants';
 
 const ListResponseDTO = createListResponseDTO(CommentListResponseDTO, 'comment');
 
@@ -45,6 +50,13 @@ const ListResponseDTO = createListResponseDTO(CommentListResponseDTO, 'comment')
   UserStatusDTO
 )
 @Controller('comment')
+@ApiInternalServerErrorResponse({
+  description: '서버 오류',
+  example: {
+    statusCode: ResponseStatusConstants.INTERNAL_SERVER_ERROR.CODE,
+    message: 'Internal server error'
+  }
+})
 export class CommentController {
   constructor(
     private readonly commentService: CommentService
@@ -201,6 +213,14 @@ export class CommentController {
     '댓글 작성 완료',
     {}
   )
+  @ApiBadRequestResponse({
+    description: '요청 데이터 오류',
+    content: {
+      'application/json': {
+        examples: PostCommentBadRequestExamples
+      }
+    }
+  })
   async postBoardComment(
     @Body() postDTO: CommentPostRequestDTO,
     @Req() req: Request,
@@ -243,6 +263,14 @@ export class CommentController {
     '댓글 작성 완료',
     {}
   )
+  @ApiBadRequestResponse({
+    description: '요청 데이터 오류',
+    content: {
+      'application/json': {
+        examples: PostCommentBadRequestExamples
+      }
+    }
+  })
   async postImageBoardComment(
     @Body() postDTO: CommentPostRequestDTO,
     @Req() req: Request,
@@ -323,6 +351,14 @@ export class CommentController {
     '작성 완료',
     {}
   )
+  @ApiBadRequestResponse({
+    description: '요청 데이터 오류',
+    content: {
+      'application/json': {
+        examples: PostCommentReplyBadRequestExamples
+      }
+    }
+  })
   async postReplyBoardComment(
     @Body() postReplyDTO: CommentPostReplyRequestDTO,
     @Req() req: Request,
@@ -368,6 +404,14 @@ export class CommentController {
     '작성 완료',
     {}
   )
+  @ApiBadRequestResponse({
+    description: '요청 데이터 오류',
+    content: {
+      'application/json': {
+        examples: PostCommentReplyBadRequestExamples
+      }
+    }
+  })
   async postReplyImageBoardComment(
     @Body() postReplyDTO: CommentPostReplyRequestDTO,
     @Req() req: Request,

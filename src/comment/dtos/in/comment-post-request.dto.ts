@@ -1,5 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDefined, IsString } from 'class-validator';
+import { IsDefined, IsNotEmpty, IsString } from 'class-validator';
+import {
+  commentContentDefinedMessage,
+  commentContentNotEmptyMessage,
+} from '#comment/constants/comment-validate-message.constants';
 
 export class CommentPostRequestDTO {
 
@@ -7,7 +11,8 @@ export class CommentPostRequestDTO {
     example: 'post comment content',
     description: '댓글 내용'
   })
-  @IsDefined()
+  @IsDefined({ message: commentContentDefinedMessage })
+  @IsNotEmpty({ message: commentContentNotEmptyMessage })
   @IsString()
   commentContent: string;
 }

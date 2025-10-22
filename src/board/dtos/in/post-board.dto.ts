@@ -1,5 +1,10 @@
 import { IsDefined, IsNotEmpty, IsString, Length } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import {
+  boardContentDefinedMessage, boardContentNotEmptyMessage,
+  boardTitleDefinedMessage,
+  boardTitleLengthMessage,
+} from '#board/constants/board-validate-meesage.constants';
 
 export class PostBoardDto {
 
@@ -7,17 +12,17 @@ export class PostBoardDto {
     description: '게시글 제목',
     example: 'testPostBoardTitle'
   })
-  @IsDefined({ message: 'boardTitle should not be null or undefined' })
+  @IsDefined({ message: boardTitleDefinedMessage })
   @IsString()
-  @Length(2, 50, { message: 'boardTitle must be longer than or equal to 2 characters' })
+  @Length(2, 50, { message: boardTitleLengthMessage })
   boardTitle: string;
 
   @ApiProperty({
     description: '게시글 내용',
     example: 'testPostBoardContent'
   })
-  @IsDefined({ message: 'boardContent should not be null or undefined' })
-  @IsNotEmpty({ message: 'boardContent is not empty' })
+  @IsDefined({ message: boardContentDefinedMessage })
+  @IsNotEmpty({ message: boardContentNotEmptyMessage })
   @IsString()
   boardContent: string;
 }

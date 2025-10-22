@@ -11,7 +11,7 @@ export class PaginationDTO {
   })
   @IsOptional()
   @IsString()
-  @Length(2, 50, { message: 'boardTitle must be longer than or equal to 2 characters' })
+  @Length(2, 50, { message: 'keyword must be longer than or equal to 2 characters' })
   keyword?: string;
 
   @ApiProperty({

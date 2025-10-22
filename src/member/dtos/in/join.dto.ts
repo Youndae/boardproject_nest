@@ -1,29 +1,48 @@
-import { IsEmail, IsNotEmpty, IsOptional, IsString, Length, Matches } from 'class-validator';
+import { IsDefined, IsEmail, IsNotEmpty, IsOptional, IsString, Length, Matches } from 'class-validator';
 import { pwRegex } from '#member/constants/validate-pattern.constants';
+import {
+  emailDefinedMessage,
+  emailNotEmptyMessage,
+  nickNameLengthMessage,
+  nickNameNotEmptyMessage,
+  userIdDefinedMessage,
+  userIdLengthMessage,
+  userIdNotEmptyMessage,
+  userNameDefinedMessage, userNameLengthMessage,
+  userNameNotEmptyMessage,
+  userPwDefinedMessage,
+  userPwMatchesMessage,
+  userPwNotEmptyMessage,
+} from '#member/constants/member-validate-message.constants';
 
 export class JoinDTO {
 
-  @IsNotEmpty()
+  @IsDefined({ message: userIdDefinedMessage })
+  @IsNotEmpty({ message: userIdNotEmptyMessage })
   @IsString()
-  @Length(2, 50)
+  @Length(2, 50, { message: userIdLengthMessage })
   userId: string;
 
-  @IsNotEmpty()
+  @IsDefined({ message: userPwDefinedMessage })
+  @IsNotEmpty({ message: userPwNotEmptyMessage })
   @IsString()
-  @Matches(pwRegex, { message: '비밀번호는 영문, 숫자, 특수문자를 포함한 8 ~ 20자리여야 합니다.' })
+  @Matches(pwRegex, { message: userPwMatchesMessage })
   userPw: string;
 
-  @IsNotEmpty()
+  @IsDefined({ message: userNameDefinedMessage })
+  @IsNotEmpty({ message: userNameNotEmptyMessage })
   @IsString()
-  @Length(2, 20)
+  @Length(2, 20, { message: userNameLengthMessage })
   userName: string;
 
   @IsOptional()
+  @IsNotEmpty({ message: nickNameNotEmptyMessage })
   @IsString()
-  @Length(2, 20)
+  @Length(2, 20, { message: nickNameLengthMessage })
   nickName?: string;
 
-  @IsNotEmpty()
+  @IsDefined({ message: emailDefinedMessage })
+  @IsNotEmpty({ message: emailNotEmptyMessage })
   @IsString()
   @IsEmail()
   email: string;

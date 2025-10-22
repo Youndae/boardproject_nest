@@ -38,9 +38,20 @@ import { ApiBearerCookie } from '#common/decorators/swagger/api-bearer-cookie.de
 import { CustomApiCreatedResponse } from '#common/decorators/swagger/created.decorator';
 import { ApiAuthExceptionResponse } from '#common/decorators/swagger/api-auth-exception-response.decorator';
 import { ResponseStatusConstants } from '#common/constants/response-status.constants';
+import {
+  PatchProfileBadRequestExamples,
+  RegisterBadRequestExamples,
+} from '#member/swagger/examples/member-error.example';
 
 @ApiTags('members')
 @Controller('member')
+@ApiInternalServerErrorResponse({
+  description: '서버 오류',
+  example: {
+    statusCode: ResponseStatusConstants.INTERNAL_SERVER_ERROR.CODE,
+    message: 'Internal server error'
+  }
+})
 export class MemberController {
 
 	constructor(
@@ -111,8 +122,13 @@ export class MemberController {
   @ApiBadRequestResponse({
     description: '이미 존재하는 사용자 아이디로 요청'
   })
-  @ApiInternalServerErrorResponse({
-    description: '서버 오류'
+  @ApiBadRequestResponse({
+    description: '요청 데이터 오류',
+    content: {
+      'application/json': {
+        examples: RegisterBadRequestExamples
+      }
+    }
   })
   async register(@Body() joinBody: any, @Req() req: Request): Promise<void> {
     const joinDTO = plainToInstance(JoinDTO, joinBody);
@@ -266,11 +282,12 @@ export class MemberController {
       message: ResponseStatusConstants.ACCESS_DENIED.MESSAGE
     }
   })
-  @ApiInternalServerErrorResponse({
-    description: '서버 오류',
-    example: {
-      statusCode: ResponseStatusConstants.INTERNAL_SERVER_ERROR.CODE,
-      message: 'Internal server error'
+  @ApiBadRequestResponse({
+    description: '요청 데이터 오류',
+    content: {
+      'application/json': {
+        examples: PatchProfileBadRequestExamples
+      }
     }
   })
   async patchProfile(
