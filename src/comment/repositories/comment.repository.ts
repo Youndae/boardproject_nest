@@ -40,6 +40,9 @@ export class CommentRepository extends Repository<Comment>{
     const { boardNo = null, imageNo = null, pageNum } = commentListDTO;
     const offset: number = getPaginationOffset(pageNum, commentAmount);
 
+    if(!boardNo && !imageNo)
+      return { list: [], totalElements: 0 };
+
     const query = this.createQueryBuilder('comment')
       .select([
         'comment.commentNo',
@@ -52,7 +55,7 @@ export class CommentRepository extends Repository<Comment>{
       ])
       .skip(offset)
       .take(commentAmount)
-      .where('comment.boardNo =: boardNo OR comment.imageNo =: imageNo', { boardNo, imageNo })
+      .where('comment.boardNo = :boardNo OR comment.imageNo = :imageNo', { boardNo, imageNo })
       .orderBy('comment.commentGroupNo', 'DESC')
       .addOrderBy('comment.commentUpperNo', 'ASC');
 

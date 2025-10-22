@@ -34,15 +34,33 @@ export class Comment extends BaseEntity {
   @Column({ type: 'int', nullable: false, default: 1})
   commentIndent: number;
 
-  @ManyToOne(() => Board)
+  @ManyToOne(
+    () => Board,
+    {
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE'
+    }
+  )
   @JoinColumn({ name: 'boardNo', referencedColumnName: 'boardNo'})
   board: Board;
 
-  @ManyToOne(() => ImageBoard)
+  @ManyToOne(
+    () => ImageBoard,
+    {
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE'
+    }
+  )
   @JoinColumn({ name: 'imageNo', referencedColumnName: 'imageNo'})
   imageBoard: ImageBoard;
 
-  @ManyToOne(() => Member)
+  @ManyToOne(
+    () => Member,
+    {
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE'
+    }
+  )
   @JoinColumn({ name: 'userId', referencedColumnName: 'userId' })
   member: Member;
 

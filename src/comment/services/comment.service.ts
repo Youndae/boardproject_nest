@@ -8,6 +8,7 @@ import { NotFoundException } from '#common/exceptions/not-found.exception';
 import { Comment } from '#comment/entities/comment.entity';
 import { AccessDeniedException } from '#common/exceptions/access-denied.exception';
 import { CommentPostReplyRequestDTO } from '#comment/dtos/in/comment-post-reply-request.dto';
+import { BadRequestException } from '#common/exceptions/bad-request.exception';
 
 @Injectable()
 export class CommentService {
@@ -27,12 +28,8 @@ export class CommentService {
     list: CommentListResponseDTO[],
     totalElements: number
   }> {
-    const result: {
-      list: CommentListResponseDTO[],
-      totalElements: number,
-    } = await this.commentRepository.getCommentList(commentListDTO);
-    
-    return result;
+
+    return this.commentRepository.getCommentList(commentListDTO);
   }
 
   /**
@@ -50,6 +47,9 @@ export class CommentService {
   ): Promise<void> {
     const saveBoardNo: number | null = boardNo ?? null;
     const saveImageNo: number | null = imageNo ?? null;
+
+    if((!saveBoardNo && !saveImageNo) || (saveBoardNo && saveImageNo))
+      throw new BadRequestException();
     
     await this.commentRepository.postComment(postDTO, userId, { boardNo: saveBoardNo, imageNo: saveImageNo });
   }
