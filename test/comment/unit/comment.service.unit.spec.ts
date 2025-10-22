@@ -3,6 +3,7 @@ import { CommentRepository } from '#comment/repositories/comment.repository';
 import { Test, TestingModule } from '@nestjs/testing';
 import { LoggerService } from '#config/logger/logger.service';
 import { Comment } from '#comment/entities/comment.entity';
+import { CommentListRequestDTO } from '#comment/dtos/in/comment-list-request.dto';
 
 describe('commentService unitTest', () => {
   let commentService: CommentService;
@@ -11,7 +12,8 @@ describe('commentService unitTest', () => {
   beforeEach(async () => {
     commentRepository = {
       findOne: jest.fn(),
-      delete: jest.fn()
+      delete: jest.fn(),
+      getCommentList: jest.fn()
     };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -26,6 +28,30 @@ describe('commentService unitTest', () => {
     commentService = moduleFixture.get<CommentService>(CommentService);
     jest.clearAllMocks();
   })
+
+  describe('getCommentListService', () => {
+    it('게시글 번호가 모두 undefined인 경우', async () => {
+      const listDTO: CommentListRequestDTO = new CommentListRequestDTO();
+
+      await expect(commentService.getCommentListService(listDTO))
+        .rejects
+        .toThrow('BAD_REQUEST');
+
+      expect(commentRepository.getCommentList).not.toHaveBeenCalled();
+    });
+
+    it('게시글 번호가 모두 존재하는 경우', async () => {
+      const listDTO: CommentListRequestDTO = new CommentListRequestDTO();
+      listDTO.imageNo = 1;
+      listDTO.boardNo = 1;
+
+      await expect(commentService.getCommentListService(listDTO))
+        .rejects
+        .toThrow('BAD_REQUEST');
+
+      expect(commentRepository.getCommentList).not.toHaveBeenCalled();
+    });
+  });
 
   describe('deleteCommentService', () => {
     it('정상 처리', async () => {

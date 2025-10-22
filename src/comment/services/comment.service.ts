@@ -29,6 +29,9 @@ export class CommentService {
     totalElements: number
   }> {
 
+    if((!commentListDTO.boardNo && !commentListDTO.imageNo) || (commentListDTO.boardNo && commentListDTO.imageNo))
+      throw new BadRequestException();
+
     return this.commentRepository.getCommentList(commentListDTO);
   }
 
@@ -40,7 +43,7 @@ export class CommentService {
    * @return void
    */
   @Transactional()
-  async postCommentListService(
+  async postCommentService(
     postDTO: CommentPostRequestDTO, 
     userId: string,
     { boardNo, imageNo}: { boardNo?: number, imageNo?: number}
@@ -92,6 +95,9 @@ export class CommentService {
   ): Promise<void> {
     const saveBoardNo: number | null = boardNo ?? null;
     const saveImageNo: number | null = imageNo ?? null;
+
+    if((!saveBoardNo && !saveImageNo) || (saveBoardNo && saveImageNo))
+      throw new BadRequestException();
 
     await this.commentRepository.postReplyComment(postReplyDTO, userId, { boardNo: saveBoardNo, imageNo: saveImageNo });
   }
