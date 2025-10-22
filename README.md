@@ -244,4 +244,12 @@ REST API 구조로 프론트엔드 재활용을 통해 Nest만 집중한 경험 
 
 ## 25/10/22
 > comment Controller, service, repository 기본 틀 작성
-> comment Repository, service 구현
+> comment Repository, service 구현   
+> comment Repository integration, comment service unit, integration 테스트.   
+
+<br/>
+
+## 25/10/23
+> 전체 컨트롤러 대상 Exception response 문서화.   
+> 문서화 처리를 위해 validation 오류에 대해서 메시지를 상수화한 constants 생성.   
+> validation 오류 반환 케이스 문서화를 위해 모듈별 example.ts 생성. 
