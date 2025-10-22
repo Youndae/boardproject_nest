@@ -18,6 +18,7 @@ import { ForbiddenException } from '#common/exceptions/forbidden.exception';
 import { ProfileResponseDto } from '#member/dtos/out/profile-response.dto';
 import { BadRequestException } from '#common/exceptions/bad-request.exception';
 import { getAuthUserId } from '#common/utils/auth.utils';
+import { AccessDeniedException } from '#common/exceptions/access-denied.exception';
 
 @Injectable()
 export class MemberService {
@@ -128,7 +129,7 @@ export class MemberService {
 
       if(!member){
         this.logger.error('memberService :: patch profile Member is Null. userId : ', userId);
-        throw new ForbiddenException();
+        throw new AccessDeniedException();
       }
 
       // 새로 등록하는 프로필 이미지는 있는데 deleteProfile이 비어있고

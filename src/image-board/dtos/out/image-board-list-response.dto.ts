@@ -27,7 +27,7 @@ export class ImageBoardListResponseDTO {
   imageDate: Date;
 
   @ApiProperty({
-    example: '20251017214810002_uuid.jpg',
+    example: 'board/20251017214810002_uuid.jpg',
     description: '썸네일'
   })
   imageName: string;

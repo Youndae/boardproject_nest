@@ -8,7 +8,9 @@ import { OAuthGuard } from '#common/guards/oauth.guard';
 import { RolesGuard } from '#common/guards/roles.guard';
 import { Roles } from '#common/decorators/roles.decorator';
 import { ConfigService } from '@nestjs/config';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
 	constructor(

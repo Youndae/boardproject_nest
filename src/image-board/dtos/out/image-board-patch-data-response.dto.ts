@@ -21,8 +21,13 @@ export class ImageBoardPatchDataResponseDTO {
   imageContent: string;
 
   @ApiProperty({
-    type: 'array',
-    description: '이미지명 목록'
+    type: String,
+    isArray: true,
+    description: '이미지명 목록',
+    example: [
+      'board/20251017214810002_uuid.jpg',
+      'board/20251017214810003_uuid.jpg',
+    ]
   })
   imageData: string[];
 

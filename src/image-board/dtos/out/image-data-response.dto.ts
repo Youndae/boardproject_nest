@@ -4,7 +4,7 @@ import { ImageData } from '#imageBoard/entities/image-data.entity';
 export class ImageDataResponseDTO {
 
   @ApiProperty({
-    example: '20251017214810002_uuid.jpg',
+    example: 'board/20251017214810002_uuid.jpg',
     description: '저장된 이미지 파일명'
   })
   imageName: string;

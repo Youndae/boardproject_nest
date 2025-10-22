@@ -35,7 +35,7 @@ export class ImageBoardDetailResponseDTO {
   imageDate: Date;
 
   @ApiProperty({
-    type: 'array',
+    type: () => [ImageDataResponseDTO],
     description: '이미지 데이터 리스트'
   })
   imageData: ImageDataResponseDTO[];

@@ -12,7 +12,16 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiBody, ApiOkResponse, ApiOperation, ApiParam, ApiTags, getSchemaPath } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiBody, ApiForbiddenResponse,
+  ApiInternalServerErrorResponse, ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+  getSchemaPath,
+} from '@nestjs/swagger';
 import { Roles } from '#common/decorators/roles.decorator';
 import { RolesGuard } from '#common/guards/roles.guard';
 import { BoardImagesUploadInterceptor } from '#common/interceptor/board-images-upload.interceptor';
@@ -33,6 +42,8 @@ import { ImageBoardPatchDataResponseDTO } from '#imageBoard/dtos/out/image-board
 import { PatchImageBoardDTO } from '#imageBoard/dtos/in/patch-image-board.dto';
 import { ApiNoContentVoid } from '#common/decorators/swagger/no-content-void.decorator';
 import { ApiImageBoardExtraModels } from '#imageBoard/swagger/decorator/image-board-extra-models.decorator';
+import { ResponseStatusConstants } from '#common/constants/response-status.constants';
+import { ApiAuthExceptionResponse } from '#common/decorators/swagger/api-auth-exception-response.decorator';
 
 const ListResponseDTO = createListResponseDTO(ImageBoardListResponseDTO, 'imageBoard');
 const DetailResponseDTO = createDetailResponseDTO(ImageBoardDetailResponseDTO, 'imageBoardDetail');
@@ -45,6 +56,14 @@ const PatchDetailResponseDTO = createDetailResponseDTO(ImageBoardPatchDataRespon
   PatchDetailResponseDTO
 )
 @Controller('image-board')
+@ApiAuthExceptionResponse()
+@ApiInternalServerErrorResponse({
+  description: '서버 오류',
+  example: {
+    statusCode: ResponseStatusConstants.INTERNAL_SERVER_ERROR.CODE,
+    message: 'Internal server error'
+  }
+})
 export class ImageBoardController {
 
   constructor(
@@ -52,15 +71,21 @@ export class ImageBoardController {
   ) { }
 
   /**
-   * @Query{
+   * @param pageDTO {
    *   keyword?: string,
    *   searchType?: string,
    *   pageNum?: number = 1
-   * } pageDTO: PaginationDTO
+   * } query
+   * @param req {
+   *   user?: {
+   *     userId: string,
+   *     roles: string[]
+   *   }
+   * }
    *
    * @returns {
-   *   data: {
-   *     content: [
+   *   data: ListResponseDTO<T>{
+   *     content: ImageBoardListResponseDTO [
    *       {
    *         imageNo: number,
    *         imageTitle: string,
@@ -104,11 +129,16 @@ export class ImageBoardController {
 
   /**
    * @param imageNo
-   * @param req
+   * @param req {
+   *   user?: {
+   *     userId: string,
+   *     roles: string[]
+   *   }
+   * }
    *
    * @returns {
-   *   data: {
-   *     content: {
+   *   data: DetailResponseDTO<T> {
+   *     content: ImageBoardDetailResponseDTO {
    *       imageNo: number,
    *       imageTitle: string,
    *       imageContent: string,
@@ -144,6 +174,13 @@ export class ImageBoardController {
       $ref: getSchemaPath(DetailResponseDTO)
     },
   })
+  @ApiNotFoundResponse({
+    description: '데이터 없음',
+    example: {
+      statusCode: ResponseStatusConstants.NOT_FOUND.CODE,
+      message: ResponseStatusConstants.NOT_FOUND.MESSAGE
+    }
+  })
   async getDetail(
     @Param('imageNo', ParseIntPipe) imageNo: number,
     @Req() req: Request
@@ -155,14 +192,23 @@ export class ImageBoardController {
   }
 
   /**
-   * @Body{
+   * @param postDTO {
    *   imageTitle: string,
    *   imageContent: string,
-   * } postDTO
-   *
-   * @param{
-   *   image: File (min 1, limit 5, mimetype: image/*)
-   * }req
+   * } body
+   * @param req {
+   *   user?: {
+   *     userId: string,
+   *     roles: string[]
+   *   },
+   *   files: File [
+   *     {
+   *       filename: string,
+   *       originalname: string,
+   *       ...
+   *     }
+   *   ] ( min 1, limit 5, mimetype: image/* )
+   * }
    *
    * @returns {
    *   data: {
@@ -184,6 +230,50 @@ export class ImageBoardController {
       imageNo: 1
     }
   )
+  @ApiBadRequestResponse({
+    description: '요청 데이터 오류',
+    content: {
+      'application/json': {
+        examples: {
+          no_file: {
+            summary: '파일 누락',
+            value: {
+              statusCode: ResponseStatusConstants.BAD_REQUEST.CODE,
+              message: ResponseStatusConstants.BAD_REQUEST.MESSAGE
+            }
+          },
+          title_undefined: {
+            summary: '제목 필드 누락',
+            value: {
+              statusCode: ResponseStatusConstants.BAD_REQUEST.CODE,
+              message: 'imageTitle should not be null or undefined'
+            }
+          },
+          title_to_short: {
+            summary: '제목 필드 짧음',
+            value: {
+              statusCode: ResponseStatusConstants.BAD_REQUEST.CODE,
+              message: 'imageTitle must be longer than or equal to 2 characters'
+            }
+          },
+          content_undefined: {
+            summary: '내용 필드 누락',
+            value: {
+              statusCode: ResponseStatusConstants.BAD_REQUEST.CODE,
+              message: 'imageContent should not be null or undefined'
+            }
+          },
+          content_blank: {
+            summary: '내용 필드 blank',
+            value: {
+              statusCode: ResponseStatusConstants.BAD_REQUEST.CODE,
+              message: 'imageContent is not empty'
+            }
+          }
+        }
+      }
+    }
+  })
   async postImageBoard(
     @Body()postDTO: PostImageBoardDTO,
     @Req() req: Request
@@ -193,14 +283,25 @@ export class ImageBoardController {
 
   /**
    * @param imageNo
-   * @param req
+   * @param req {
+   *   user?: {
+   *     userId: string,
+   *     roles: string[]
+   *   }
+   * }
    *
    * @returns {
-   *   data: {
-   *     imageNo: number,
-   *     imageTitle: string,
-   *     imageContent: string,
-   *     imageData: string[{ imageName: string }]
+   *   data: DetailResponseDTO<T> {
+   *     content: ImageBoardPatchDataResponseDTO {
+   *       imageNo: number,
+   *       imageTitle: string,
+   *       imageContent: string,
+   *       imageData: String[{ imageName: string }]
+   *     },
+   *     userStatus: UserStatusDTO {
+   *       loggedIn: boolean,
+   *       uid: string
+   *     }
    *   }
    * }
    */
@@ -236,15 +337,25 @@ export class ImageBoardController {
   /**
    *
    * @param imageNo
-   * @Body{
+   * @param patchDTO {
    *   imageTitle: string,
    *   imageContent: string,
    *   deleteFiles?: string[{imageName}]
-   * }patchDTO
+   * } body
    *
-   * @param{
-   *   file?: File ( limit: 5, mimetype: image/*)
-   * }req
+   * @param req {
+   *   user?: {
+   *     userId: string,
+   *     roles: string[]
+   *   },
+   *   files: File [
+   *     {
+   *       filename: string,
+   *       originalname: string,
+   *       ...
+   *     }
+   *   ] ( min 1, limit 5, mimetype: image/* )
+   * }
    *
    * @returns {
    *   data: {
@@ -282,7 +393,12 @@ export class ImageBoardController {
 
   /**
    * @param imageNo
-   * @param req
+   * @param req {
+   *   user?: {
+   *     userId: string,
+   *     roles: string[]
+   *   }
+   * }
    *
    * @returns{
    *   status: 204

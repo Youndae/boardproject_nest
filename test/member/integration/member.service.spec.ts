@@ -368,7 +368,7 @@ describe('member.service Integration', () => {
 
       await expect(memberService.patchProfile(patchProfile, patchReq))
         .rejects
-        .toThrow('FORBIDDEN');
+        .toThrow('ACCESS_DENIED');
 
       expect(resizingService.resizeProfileImage).toHaveBeenCalledWith(destDir, patchReq.file.filename);
       expect(fileService.deleteFile).toHaveBeenCalledWith(`${destDir}/${resizedFilename}`);

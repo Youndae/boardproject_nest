@@ -398,7 +398,7 @@ describe('BoardController E2E Test', () => {
       expect(saveBoard?.boardIndent).toBe(1);
     });
 
-    it('비회원 접근', async () => {
+    it.only('비회원 접근', async () => {
       const response = await request(app.getHttpServer())
         .post(`${baseUrl}`)
         .send({
@@ -406,6 +406,8 @@ describe('BoardController E2E Test', () => {
           boardContent: postContent,
         })
         .expect(403);
+
+      console.log('response : ', response.body);
 
       expect(response.body.message).toBe(ResponseStatusConstants.FORBIDDEN.MESSAGE);
     });

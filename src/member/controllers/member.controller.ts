@@ -24,8 +24,20 @@ import { RequestUserType } from '#common/types/requestUser.type';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { BadRequestException } from '#common/exceptions/bad-request.exception';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse, ApiForbiddenResponse,
+  ApiInternalServerErrorResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { getAuthUserId } from '#common/utils/auth.utils';
+import { ApiBearerCookie } from '#common/decorators/swagger/api-bearer-cookie.decorator';
+import { CustomApiCreatedResponse } from '#common/decorators/swagger/created.decorator';
+import { ApiAuthExceptionResponse } from '#common/decorators/swagger/api-auth-exception-response.decorator';
+import { ResponseStatusConstants } from '#common/constants/response-status.constants';
 
 @ApiTags('members')
 @Controller('member')
@@ -36,11 +48,24 @@ export class MemberController {
     private readonly memberService: MemberService
 	){}
 
+  /**
+   *
+   * @param req {
+   *   user?: {
+   *     userId: string,
+   *     roles: string[]
+   *   }
+   * }
+   *
+   * @returns {
+   *   loginStatus: boolean
+   * }
+   */
   @Get('/check-login')
   @HttpCode(200)
   @ApiOperation({ summary: '로그인 체크' })
   @ApiResponse({ description: '체크 완료', schema: { example: { loginStatus: true } }})
-  checkUser(@Req() req: Request) {
+  checkUser(@Req() req: Request): { loginStatus: boolean } {
 
     let loginStatus = false;
 
@@ -51,23 +76,24 @@ export class MemberController {
   }
 
   /**
-   * POST
-   * 회원 가입 요청
-   *
-   * 요구사항
-   * 1. 비회원만 요청 가능
-   * 2. 프로필 이미지 업로드 처리 필요. (이미지는 없을수 있고 최대 1장)
-   *
-   * @Body {
+   * @param joinBody {
    *   userId: string,
    *   userPw: string,
    *   userName: string,
    *   nickName?: string,
    *   email: string
-   * } joinDTO
+   * } body
    *
-   * @Req {
-   *   profileImage?: Multipart
+   * @param req {
+   *   user?: {
+   *     userId: string,
+   *     roles: string[]
+   *   },
+   *   file?: File {
+   *     imageName: string,
+   *     originName: string,
+   *     ...
+   *   }
    * }
    *
    * @return void
@@ -76,6 +102,18 @@ export class MemberController {
   @Post('/join')
   @UseInterceptors(ProfileUploadInterceptor)
   @HttpCode(201)
+  @ApiBearerCookie()
+  @ApiOperation({ summary: '회원가입' })
+  @CustomApiCreatedResponse(
+    '회원 가입 정상 처리',
+    {}
+  )
+  @ApiBadRequestResponse({
+    description: '이미 존재하는 사용자 아이디로 요청'
+  })
+  @ApiInternalServerErrorResponse({
+    description: '서버 오류'
+  })
   async register(@Body() joinBody: any, @Req() req: Request): Promise<void> {
     const joinDTO = plainToInstance(JoinDTO, joinBody);
 
@@ -87,15 +125,7 @@ export class MemberController {
   }
 
   /**
-   * GET
-   * 회원가입 중 아이디 중복 체크
-   *
-   * 요구사항
-   * 1. 비회원만 요청 가능
-   *
-   * @Query {
-   *   userId
-   * }
+   * @param userId query
    *
    * @returns {
    *   isExists: boolean
@@ -104,7 +134,34 @@ export class MemberController {
   @UseGuards(AnonymousGuard)
   @Get('/check-id')
   @HttpCode(200)
-  async checkId(@Query('userId') userId: string): Promise<any> {
+  @ApiOperation({ summary: '아이디 중복 체크' })
+  @ApiQuery({
+    name: 'userId',
+    required: true,
+    description: '체크할 아이디',
+    type: String
+  })
+  @ApiOkResponse({
+    description: '정상 체크',
+    examples: {
+      isNotExists: {
+        summary: '사용 가능',
+        value: { isExists: true }
+      },
+      isExists: {
+        summary: '사용 불가능(중복)',
+        value: { isExists: false }
+      }
+    }
+  })
+  @ApiInternalServerErrorResponse({
+    description: '서버 오류',
+    example: {
+      statusCode: ResponseStatusConstants.INTERNAL_SERVER_ERROR.CODE,
+      message: 'Internal server error'
+    }
+  })
+  async checkId(@Query('userId') userId: string): Promise<{ isExists: boolean }> {
     if(!userId || userId.trim() === '')
       throw new BadRequestException();
 
@@ -114,15 +171,12 @@ export class MemberController {
   }
 
   /**
-   * GET
-   * 회원가입 또는 정보 수정 중 닉네임 중복 체크
-   *
-   * 요구사항
-   * 1. 비회원, 회원 모두 접근 가능
-   * 2. 정보 수정 중 자신의 닉네임을 중복체크하는 경우 중복이 아닌것으로 처리.
-   *
-   * @Query {
-   *   nickname
+   * @param nickname query
+   * @param req {
+   *   user?: {
+   *     userId: string,
+   *     roles: string[]
+   *   }
    * }
    *
    * @returns {
@@ -131,7 +185,35 @@ export class MemberController {
    */
   @Get('/check-nickname')
   @HttpCode(200)
-  async checkNickname(@Query('nickname') nickname: string, @Req() req: Request): Promise<any> {
+  @ApiOperation({ summary: '닉네임 중복 체크. 회원, 비회원 모두 가능' })
+  @ApiQuery({
+    name: 'nickname',
+    required: true,
+    description: '체크할 닉네임',
+    type: String
+  })
+  @ApiOkResponse({
+    description: '정상 체크',
+    examples: {
+      isNotExists: {
+        summary: '사용 가능',
+        value: { isExists: true }
+      },
+      isExists: {
+        summary: '사용 불가능(중복)',
+        value: { isExists: false }
+      }
+    }
+  })
+  @ApiInternalServerErrorResponse({
+    description: '서버 오류',
+    example: {
+      statusCode: ResponseStatusConstants.INTERNAL_SERVER_ERROR.CODE,
+      message: 'Internal server error'
+    }
+  })
+  @ApiAuthExceptionResponse()
+  async checkNickname(@Query('nickname') nickname: string, @Req() req: Request): Promise<{ isExists: boolean }> {
 
     if(!nickname || nickname.trim() === '')
       throw new BadRequestException();
@@ -145,24 +227,23 @@ export class MemberController {
   }
 
   /**
-   * PATCH
-   * 정보 수정
    *
-   * 요구사항
-   * 1. 파일 업로드 처리 필요
-   *
-   * @Param {
+   * @Param patchProfileDTO {
    *   nickname?: string,
    *   deleteProfile?: string,
-   * } patchProfileDTO
+   * } body
    *
-   * @Param {
-   *   profileImage?: Multipart,
-   *   user: {
-   *    userId: string,
-   *    roles: string[],
+   * @param req {
+   *   user?: {
+   *     userId: string,
+   *     roles: string[]
+   *   },
+   *   file?: File {
+   *     imageName: string,
+   *     originName: string,
+   *     ...
    *   }
-   * } req
+   * }
    *
    * @return void
    */
@@ -171,6 +252,27 @@ export class MemberController {
   @UseInterceptors(ProfileUploadInterceptor)
   @Patch('/profile')
   @HttpCode(200)
+  @ApiBearerCookie()
+  @ApiOperation({ summary: '정보 수정' })
+  @ApiOkResponse({
+    description: '정상 수정',
+    schema: {}
+  })
+  @ApiAuthExceptionResponse()
+  @ApiForbiddenResponse({
+    description: '사용자 데이터가 없는 경우',
+    example: {
+      statusCode: ResponseStatusConstants.ACCESS_DENIED.CODE,
+      message: ResponseStatusConstants.ACCESS_DENIED.MESSAGE
+    }
+  })
+  @ApiInternalServerErrorResponse({
+    description: '서버 오류',
+    example: {
+      statusCode: ResponseStatusConstants.INTERNAL_SERVER_ERROR.CODE,
+      message: 'Internal server error'
+    }
+  })
   async patchProfile(
     @Body() patchProfileDTO: PatchProfileDto,
     @Req() req: Request
@@ -186,11 +288,9 @@ export class MemberController {
   }
 
   /**
-   * GET
-   * 정보 수정을 위한 데이터 조회
    *
    * @Param {
-   *   user: {
+   *   user?: {
    *     userId: string,
    *     roles: string[],
    *   }
@@ -205,6 +305,13 @@ export class MemberController {
   @UseGuards(RolesGuard)
   @Get('/profile')
   @HttpCode(200)
+  @ApiBearerCookie()
+  @ApiOperation({ summary: '정보 수정을 위한 데이터 조회' })
+  @ApiOkResponse({
+    description: '정상 조회',
+    type: ProfileResponseDto
+  })
+  @ApiAuthExceptionResponse()
   async getProfile(@Req() req: Request): Promise<ProfileResponseDto> {
     const userId: string = getAuthUserId(req);
 

@@ -9,11 +9,13 @@ import { Comment } from '#comment/entities/comment.entity';
 import { AccessDeniedException } from '#common/exceptions/access-denied.exception';
 import { CommentPostReplyRequestDTO } from '#comment/dtos/in/comment-post-reply-request.dto';
 import { BadRequestException } from '#common/exceptions/bad-request.exception';
+import { LoggerService } from '#config/logger/logger.service';
 
 @Injectable()
 export class CommentService {
   constructor(
-    private readonly commentRepository: CommentRepository
+    private readonly commentRepository: CommentRepository,
+    private readonly logger: LoggerService
   ) {}
 
   /**
@@ -29,8 +31,10 @@ export class CommentService {
     totalElements: number
   }> {
 
-    if((!commentListDTO.boardNo && !commentListDTO.imageNo) || (commentListDTO.boardNo && commentListDTO.imageNo))
+    if((!commentListDTO.boardNo && !commentListDTO.imageNo) || (commentListDTO.boardNo && commentListDTO.imageNo)) {
+      this.logger.error('commentService.getCommentListService boardNo all undefined or all exists');
       throw new BadRequestException();
+    }
 
     return this.commentRepository.getCommentList(commentListDTO);
   }
@@ -51,8 +55,11 @@ export class CommentService {
     const saveBoardNo: number | null = boardNo ?? null;
     const saveImageNo: number | null = imageNo ?? null;
 
-    if((!saveBoardNo && !saveImageNo) || (saveBoardNo && saveImageNo))
+    if((!saveBoardNo && !saveImageNo) || (saveBoardNo && saveImageNo)){
+      this.logger.error('commentService.postCommentService boardNo all undefined or all exists');
       throw new BadRequestException();
+    }
+
     
     await this.commentRepository.postComment(postDTO, userId, { boardNo: saveBoardNo, imageNo: saveImageNo });
   }
@@ -66,11 +73,15 @@ export class CommentService {
   async deleteCommentService(commentNo: number, userId: string): Promise<void> {
     const comment: Comment | null = await this.commentRepository.findOne({ where: { commentNo } });
 
-    if(!comment)
+    if(!comment) {
+      this.logger.error('commentService.deleteCommentService comment is null');
       throw new NotFoundException();
+    }
 
-    if(comment.userId !== userId)
+    if(comment.userId !== userId) {
+      this.logger.error('commentService.deleteCommentService writer is not match');
       throw new AccessDeniedException();
+    }
 
     await this.commentRepository.delete({ commentNo });
   }
@@ -96,8 +107,10 @@ export class CommentService {
     const saveBoardNo: number | null = boardNo ?? null;
     const saveImageNo: number | null = imageNo ?? null;
 
-    if((!saveBoardNo && !saveImageNo) || (saveBoardNo && saveImageNo))
+    if((!saveBoardNo && !saveImageNo) || (saveBoardNo && saveImageNo)) {
+      this.logger.error('commentService.postReplyService boardNo all undefined or all exists');
       throw new BadRequestException();
+    }
 
     await this.commentRepository.postReplyComment(postReplyDTO, userId, { boardNo: saveBoardNo, imageNo: saveImageNo });
   }

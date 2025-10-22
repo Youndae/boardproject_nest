@@ -7,6 +7,7 @@ import { ResponseStatusConstants } from '#common/constants/response-status.const
 import { TokenStealingException } from '#common/exceptions/token-stealing.exception';
 import { AuthRepository } from '#member/repositories/auth.repository';
 import { UnauthorizedException } from '#common/exceptions/unauthorized.exception';
+import { InternalServerErrorException } from '#common/exceptions/internal-server-error.exception';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -77,7 +78,7 @@ export class JwtAuthGuard implements CanActivate {
     const auths: string[] = await this.authRepository.getMemberAuths(username);
 
     if(auths.length === 0)
-      throw new UnauthorizedException();
+      throw new InternalServerErrorException();
 
     request.user = {
       userId: username,
