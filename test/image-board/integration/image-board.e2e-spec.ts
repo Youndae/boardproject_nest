@@ -20,6 +20,7 @@ import { REDIS_CLIENT } from '#config/redis/redis.module';
 import cookieParser from 'cookie-parser';
 import { Auth } from '#member/entities/auth.entity';
 import request from 'supertest';
+import { keywordLengthMessage } from '#common/constants/common-validate-message.constans';
 
 describe('ImageBoardController E2E Test', () => {
   let app: INestApplication;
@@ -323,7 +324,7 @@ describe('ImageBoardController E2E Test', () => {
 
       const body = response.body;
 
-      expect(body.message[0]).toBe('boardTitle must be longer than or equal to 2 characters');
+      expect(body.message[0]).toBe(keywordLengthMessage);
       expect(body.error).toBe('Bad Request');
     });
 

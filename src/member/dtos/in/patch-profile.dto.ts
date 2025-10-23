@@ -2,8 +2,8 @@ import { IsDefined, IsNotEmpty, IsOptional, IsString, Length } from 'class-valid
 import { nickNameNotEmptyMessage } from '#member/constants/member-validate-message.constants';
 
 export class PatchProfileDto {
-  //test용 constructor
-  constructor(nickname: string, deleteProfile: string | undefined) {
+
+  constructor(nickname?: string, deleteProfile?: string) {
     this.nickname = nickname;
     this.deleteProfile = deleteProfile;
   }

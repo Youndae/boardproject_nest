@@ -294,12 +294,13 @@ export class MemberController {
     @Body() patchProfileDTO: PatchProfileDto,
     @Req() req: Request
   ): Promise<void> {
+    const patchDTO: PatchProfileDto = plainToInstance(PatchProfileDto, patchProfileDTO) ?? new PatchProfileDto();
 
-    const patchDTO: PatchProfileDto = plainToInstance(PatchProfileDto, patchProfileDTO);
-
-    const validateErrors = await validate(patchDTO);
-    if(validateErrors.length > 0)
-      throw new BadRequestException();
+    if(patchDTO){
+      const validateErrors = await validate(patchDTO);
+      if(validateErrors.length > 0)
+        throw new BadRequestException();
+    }
 
     await this.memberService.patchProfile(patchDTO, req);
   }

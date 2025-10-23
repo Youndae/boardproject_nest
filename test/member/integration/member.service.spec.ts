@@ -278,7 +278,7 @@ describe('member.service Integration', () => {
     const resizedFilename: string = 'resizedNewProfile.png';
 
     it('프로필 이미지는 undefined, nickname은 blank로 요청된 경우', async () => {
-      const patchProfile: PatchProfileDto = new PatchProfileDto('', undefined);
+      const patchProfile: PatchProfileDto = new PatchProfileDto();
       const patchReq: any = {
         user: {
           userId: saveMember.userId,

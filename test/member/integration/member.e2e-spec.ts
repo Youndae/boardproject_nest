@@ -512,13 +512,12 @@ describe('MemberController E2E Test', () => {
       expect(profileThumbnailValid).toBeTruthy();
     });
 
-    it('닉네임이 blank고 나머지는 undefined인 경우', async () => {
+    it('모든 필드가 undefined인 경우', async () => {
       const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(saveMember.userId);
 
-      await request(app.getHttpServer())
+      const response = await request(app.getHttpServer())
         .patch(`${baseUrl}/profile`)
         .set('Cookie', tokenCookies)
-        .field('nickname', '')
         .expect(200);
 
       expect(fileService.deleteFile).not.toHaveBeenCalled();
@@ -530,21 +529,19 @@ describe('MemberController E2E Test', () => {
       expect(patchMember?.profileThumbnail).toBe(saveMember.profileThumbnail);
     });
 
-    it('nickname은 blank, deleteProfile이 존재하지만 새로운 이미지 파일은 없는 경우', async () => {
+    it('nickname은 undefined, deleteProfile이 존재하지만 새로운 이미지 파일은 없는 경우', async () => {
       const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(saveMember.userId);
       toFileMock.mockResolvedValueOnce({});
       (fileService.deleteFile as jest.Mock)
         .mockResolvedValue(undefined);
 
       const patchData = {
-        nickname: 'patchNickname',
         deleteProfile: saveMember.profileThumbnail
       };
 
       await request(app.getHttpServer())
         .patch(`${baseUrl}/profile`)
         .set('Cookie', tokenCookies)
-        .field('nickname', '')
         .field('deleteProfile', patchData.deleteProfile!)
         .expect(200);
 

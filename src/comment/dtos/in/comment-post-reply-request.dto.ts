@@ -8,6 +8,7 @@ import {
   commentIndentDefinedMessage,
   commentIndentMinMessage, commentUpperNoDefinedMessage, commentUpperNoNotEmptyMessage,
 } from '#comment/constants/comment-validate-message.constants';
+import { Transform } from 'class-transformer';
 
 export class CommentPostReplyRequestDTO {
 
@@ -25,6 +26,7 @@ export class CommentPostReplyRequestDTO {
     description: '상위 댓글 그룹 번호'
   })
   @IsDefined({ message: commentGroupNoDefinedMessage })
+  @Transform(({value}) => { if(value) return Number(value) })
   @IsInt()
   @Min(1, { message: commentGroupNoMinMessage })
   commentGroupNo: number;
@@ -34,6 +36,7 @@ export class CommentPostReplyRequestDTO {
     description: '상위 댓글 계층'
   })
   @IsDefined({ message: commentIndentDefinedMessage })
+  @Transform(({value}) => { if(value) return Number(value) })
   @IsInt()
   @Min(1, { message: commentIndentMinMessage })
   commentIndent: number;

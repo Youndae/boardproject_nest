@@ -143,7 +143,7 @@ export class MemberService {
 
       member.nickName = patchProfileDTO.nickname ?? null;
       member.profileThumbnail = profileThumbnail ? `profile/${profileThumbnail?.imageName}` : member.profileThumbnail;
-
+      console.log('patchMember : ', member);
       await this.memberRepository.save(member);
 
       try {

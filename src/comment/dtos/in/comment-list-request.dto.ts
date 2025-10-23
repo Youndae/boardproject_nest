@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsOptional, Min } from 'class-validator';
+import { IsInt, IsNumber, IsOptional, Min } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class CommentListRequestDTO {
@@ -10,6 +10,7 @@ export class CommentListRequestDTO {
     required: false,
   })
   @IsOptional()
+  @Transform(({value}) => (value ? Number(value) : undefined))
   @IsInt()
   boardNo?: number;
 
@@ -19,6 +20,7 @@ export class CommentListRequestDTO {
     required: false,
   })
   @IsOptional()
+  @Transform(({value}) => (value ? Number(value) : undefined))
   @IsInt()
   imageNo?: number;
 

@@ -18,6 +18,7 @@ import { Board } from '#board/entities/board.entity';
 import request from 'supertest';
 import { ResponseStatusConstants } from '#common/constants/response-status.constants';
 import { PostBoardDto } from '#board/dtos/in/post-board.dto';
+import { keywordLengthMessage } from '#common/constants/common-validate-message.constans';
 
 describe('BoardController E2E Test', () => {
   let app: INestApplication;
@@ -231,7 +232,7 @@ describe('BoardController E2E Test', () => {
         .query({ 'searchType': 't' })
         .expect(400);
 
-      expect(response.body.message[0]).toBe('boardTitle must be longer than or equal to 2 characters');
+      expect(response.body.message[0]).toBe(keywordLengthMessage);
     })
 
     it('잘못된 검색 타입인 경우', async () => {
@@ -398,7 +399,7 @@ describe('BoardController E2E Test', () => {
       expect(saveBoard?.boardIndent).toBe(1);
     });
 
-    it.only('비회원 접근', async () => {
+    it('비회원 접근', async () => {
       const response = await request(app.getHttpServer())
         .post(`${baseUrl}`)
         .send({
@@ -406,8 +407,6 @@ describe('BoardController E2E Test', () => {
           boardContent: postContent,
         })
         .expect(403);
-
-      console.log('response : ', response.body);
 
       expect(response.body.message).toBe(ResponseStatusConstants.FORBIDDEN.MESSAGE);
     });
