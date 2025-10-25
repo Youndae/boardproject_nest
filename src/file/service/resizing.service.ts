@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import sharp from 'sharp';
 import { join } from 'path';
 import { appendSizeSuffix } from '#common/utils/file.util';
-import { FileService } from '#common/services/file.service';
+import { FileService } from '#src/file/service/file.service';
 
 
 @Injectable()

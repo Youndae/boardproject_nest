@@ -1,8 +1,8 @@
 import { MemberService } from '#member/services/member.service';
 import { MemberRepository } from '#member/repositories/member.repository';
 import { AuthRepository } from '#member/repositories/auth.repository';
-import { ResizingService } from '#common/services/resizing.service';
-import { FileService } from '#common/services/file.service';
+import { ResizingService } from '#src/file/service/resizing.service';
+import { FileService } from '#src/file/service/file.service';
 import { initializeTransactionalContext } from 'typeorm-transactional';
 import { Test, TestingModule } from '@nestjs/testing';
 import { MemberModule } from '#member/member.module';

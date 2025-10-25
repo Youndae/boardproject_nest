@@ -11,25 +11,27 @@ import { LoggerModule } from '#config/logger/logger.module';
 import { RedisModule } from '#config/redis/redis.module';
 import { DatabaseModule } from '#config/db/typeorm.module';
 import { GuardModule } from '#common/guards/guard.module';
+import { FileModule } from '#src/file/file.module';
 
 @Module({
   imports: [
-	ConfigModule.forRoot({
-    isGlobal: true,
-    envFilePath: [
-      `.env.${process.env.NODE_ENV || 'development'}`,
-      '.env'
-    ]
-  }),
-	LoggerModule,
-	RedisModule,
-	DatabaseModule,
-	GuardModule,
-	BoardModule,
-	ImageBoardModule,
-	AuthModule,
-	MemberModule,
-	CommentModule
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [
+        `.env.${process.env.NODE_ENV || 'development'}`,
+        '.env'
+      ]
+    }),
+    LoggerModule,
+    RedisModule,
+    DatabaseModule,
+    GuardModule,
+    BoardModule,
+    ImageBoardModule,
+    AuthModule,
+    MemberModule,
+    CommentModule,
+    FileModule
   ],
   providers: [
     {

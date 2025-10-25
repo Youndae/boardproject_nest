@@ -228,3 +228,13 @@ REST API 구조로 프론트엔드 재활용을 통해 Nest만 집중한 경험 
 > validation 오류 반환 케이스 문서화를 위해 모듈별 example.ts 생성.   
 > comment controller E2E 테스트   
 > 프로젝트 마무리.
+
+<br/>
+
+## 25/10/25
+> 이미지 출력 관련 file display 누락된 것 추가.   
+> file 모듈을 별도의 디렉토리로 분리.   
+> file.service와 resizing.service를 해당 디렉토리로 이동.   
+> file.controller 생성.   
+> FileModule을 app.module에 추가.   
+> 브라우저에서 이미지 정상 출력 확인.

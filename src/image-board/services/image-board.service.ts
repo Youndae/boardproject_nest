@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ImageBoardRepository } from '#imageBoard/repositories/image-board.repository';
 import { ConfigService } from '@nestjs/config';
-import { ResizingService } from '#common/services/resizing.service';
-import { FileService } from '#common/services/file.service';
+import { ResizingService } from '#src/file/service/resizing.service';
+import { FileService } from '#src/file/service/file.service';
 import { LoggerService } from '#config/logger/logger.service';
 import { Transactional } from 'typeorm-transactional';
 import { ImageDataRepository } from '#imageBoard/repositories/image-data.repository';

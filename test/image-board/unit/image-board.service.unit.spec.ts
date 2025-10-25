@@ -7,8 +7,8 @@ import { ImageBoard } from '#imageBoard/entities/image-board.entity';
 import { ImageData } from '#imageBoard/entities/image-data.entity';
 import { ImageDataRepository } from '#imageBoard/repositories/image-data.repository';
 import { ConfigService } from '@nestjs/config';
-import { ResizingService } from '#common/services/resizing.service';
-import { FileService } from '#common/services/file.service';
+import { ResizingService } from '#src/file/service/resizing.service';
+import { FileService } from '#src/file/service/file.service';
 import { ImageBoardPatchDataResponseDTO } from '#imageBoard/dtos/out/image-board-patch-data-response.dto';
 
 describe('imageBoardService unitTest', () => {
