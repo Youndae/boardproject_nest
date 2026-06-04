@@ -11,12 +11,16 @@ import { MemberModule } from '#member/member.module';
 import { TestDatabaseModule } from '../../module/testDatabase.module';
 import { Board } from '#board/entities/board.entity';
 import { PaginationDTO } from '#common/dtos/in/pagination.dto';
-import { BoardListResponseDTO } from '#board/dtos/out/board-list-response.dto';
-import { BoardDetailResponseDTO } from '#board/dtos/out/board-detail-response.dto';
-import { PostBoardDto } from '#board/dtos/in/post-board.dto';
-import { BoardPatchDetailResponseDTO } from '#board/dtos/out/board-patch-detail-response.dto';
-import { BoardReplyDataDTO } from '#board/dtos/out/board-reply-data.dto';
-import { PostReplyDTO } from '#board/dtos/in/post-reply.dto';
+import { BoardListResponse } from '#board/dtos/out/board-list.response.dto';
+import { BoardDetailResponse } from '#board/dtos/out/board-detail.response.dto';
+import { PostBoardRequest } from '#board/dtos/in/post-board.request.dto';
+import { BoardPatchDetailResponse } from '#board/dtos/out/board-patch-detail.response.dto';
+import { PAGE_AMOUNT } from '#common/constants/common-page-amount.constants';
+import { ListResponse } from '#common/dtos/out/list.response.dto';
+import { getTotalPages } from '../../utils/pagination.utils';
+import { BadRequestException } from '#common/exceptions/bad-request.exception';
+import { AccessDeniedException } from '#common/exceptions/access-denied.exception';
+import { PostReplyRequest } from '#board/dtos/in/post-reply.request.dto';
 
 describe('board.service Integration', () => {
   let app: INestApplication;
@@ -26,10 +30,10 @@ describe('board.service Integration', () => {
   let boardRepository: BoardRepository;
 
   let testBoard: Board;
-  const boardListCount: number = 33;
+  const boardListCount: number = 30;
   const member: Member = new Member();
 
-  const boardAmount: number = 20;
+  const boardAmount: number = PAGE_AMOUNT.BOARD;
 
   beforeAll(async () => {
     initializeTransactionalContext();
@@ -60,15 +64,16 @@ describe('board.service Integration', () => {
     await memberRepository.deleteAll();
 
     member.userId = 'tester';
-    member.userPw = '1234';
-    member.userName = 'testerName';
-    member.nickName = 'testerNickname';
+    member.password = '1234';
+    member.username = 'testerName';
+    member.nickname = 'testerNickname';
     member.email = 'tester@tester.com';
-    member.profileThumbnail = 'localProfileName.jpg';
+    member.profile = 'localProfileName.jpg';
     member.provider = 'local';
 
     const saveMember: Member = memberRepository.create(member);
-    await memberRepository.save(saveMember);
+    const savedMember: Member = await memberRepository.save(saveMember);
+    member.id = savedMember.id;
   });
 
   beforeEach(async () => {
@@ -79,12 +84,12 @@ describe('board.service Integration', () => {
     for(let i = 0; i < boardListCount - 3; i++) {
       boardArr.push(
         boardRepository.create({
-          userId: member.userId,
-          boardTitle: `testTitle${i}`,
-          boardContent: `testContent${i}`,
-          boardGroupNo: i,
-          boardUpperNo: `${i}`,
-          boardIndent: 1,
+          userId: member.id,
+          title: `testTitle${i}`,
+          content: `testContent${i}`,
+          groupNo: i,
+          upperNo: `${i}`,
+          indent: 1,
         })
       );
     }
@@ -92,47 +97,47 @@ describe('board.service Integration', () => {
     const saveBoard: Board[] = await boardRepository.save(boardArr);
 
     saveBoard.forEach(entity => {
-      entity.boardGroupNo = entity.boardNo;
-      entity.boardUpperNo = `${entity.boardNo}`;
+      entity.groupNo = entity.id;
+      entity.upperNo = `${entity.id}`;
     })
 
-    let replyNoStart = saveBoard[saveBoard.length - 1].boardNo;
+    let replyNoStart = saveBoard[saveBoard.length - 1].id;
     const replyGroupNo = replyNoStart - 1;
     testBoard = saveBoard[saveBoard.length - 1];
 
     saveBoard.push(
       boardRepository.create({
-        boardNo: ++replyNoStart,
-        userId: member.userId,
-        boardTitle: `testTitle28Reply1`,
-        boardContent: `testContent28Reply1`,
-        boardGroupNo: replyGroupNo,
-        boardUpperNo: `${replyGroupNo},${replyNoStart}`,
-        boardIndent: 2,
+        id: ++replyNoStart,
+        userId: member.id,
+        title: `testTitle28Reply1`,
+        content: `testContent28Reply1`,
+        groupNo: replyGroupNo,
+        upperNo: `${replyGroupNo},${replyNoStart}`,
+        indent: 2,
       })
     )
 
     saveBoard.push(
       boardRepository.create({
-        boardNo: ++replyNoStart,
-        userId: member.userId,
-        boardTitle: `testTitle28Reply2`,
-        boardContent: `testContent28Reply2`,
-        boardGroupNo: replyGroupNo,
-        boardUpperNo: `${replyGroupNo},${replyNoStart}`,
-        boardIndent: 2,
+        id: ++replyNoStart,
+        userId: member.id,
+        title: `testTitle28Reply2`,
+        content: `testContent28Reply2`,
+        groupNo: replyGroupNo,
+        upperNo: `${replyGroupNo},${replyNoStart}`,
+        indent: 2,
       })
     )
 
     saveBoard.push(
       boardRepository.create({
-        boardNo: ++replyNoStart,
-        userId: member.userId,
-        boardTitle: `testTitle28Reply3`,
-        boardContent: `testContent28Reply3`,
-        boardGroupNo: replyGroupNo,
-        boardUpperNo: `${replyGroupNo},${replyNoStart - 2},${replyNoStart}`,
-        boardIndent: 3,
+        id: ++replyNoStart,
+        userId: member.id,
+        title: `testTitle28Reply3`,
+        content: `testContent28Reply3`,
+        groupNo: replyGroupNo,
+        upperNo: `${replyGroupNo},${replyNoStart - 2},${replyNoStart}`,
+        indent: 3,
       })
     );
 
@@ -149,253 +154,242 @@ describe('board.service Integration', () => {
   describe('getListService', () => {
     const pageDTO: PaginationDTO = new PaginationDTO();
     it('정상 조회. 검색어 없음.', async () => {
-      const result: {
-        list: BoardListResponseDTO[],
-        totalElements: number
-      } = await boardService.getListService(pageDTO);
+      const result: ListResponse<BoardListResponse> = await boardService.getListService(pageDTO);
+      const totalPagesFixture: number = getTotalPages(boardListCount, boardAmount);
 
       expect(result).not.toBeNull();
-      expect(result.list).not.toStrictEqual([]);
-      expect(result.list.length).toBe(boardAmount);
-      expect(result.totalElements).toBe(boardListCount);
+      expect(result.items).not.toStrictEqual([]);
+      expect(result.items.length).toBe(boardAmount);
+      expect(result.totalPages).toBe(totalPagesFixture);
+      expect(result.isEmpty).toBeFalsy();
+      expect(result.currentPage).toBe(1);
     });
 
     it('정상 조회. 데이터가 없는 경우', async () => {
       await boardRepository.deleteAll();
 
-      const result: {
-        list: BoardListResponseDTO[],
-        totalElements: number
-      } = await boardService.getListService(pageDTO);
+      const result: ListResponse<BoardListResponse> = await boardService.getListService(pageDTO);
 
       expect(result).not.toBeNull();
-      expect(result.list).toStrictEqual([]);
-      expect(result.list.length).toBe(0);
-      expect(result.totalElements).toBe(0);
+      expect(result.items).toStrictEqual([]);
+      expect(result.totalPages).toBe(0);
+      expect(result.isEmpty).toBeTruthy();
+      expect(result.currentPage).toBe(1);
     });
 
     it('정상 조회. 제목 기반 검색', async () => {
       pageDTO.keyword = '11';
       pageDTO.searchType = 't';
 
-      const result: {
-        list: BoardListResponseDTO[],
-        totalElements: number
-      } = await boardService.getListService(pageDTO);
-
-      console.log('제목 기반 검색 list : ', result.list);
+      const result: ListResponse<BoardListResponse> = await boardService.getListService(pageDTO);
 
       expect(result).not.toBeNull();
-      expect(result.list).not.toStrictEqual([]);
-      expect(result.list.length).toBe(1);
-      expect(result.totalElements).toBe(1);
-      expect(result.list[0].boardTitle).toBe(`testTitle${pageDTO.keyword}`);
+      expect(result.items).not.toStrictEqual([]);
+      expect(result.items.length).toBe(1);
+      expect(result.totalPages).toBe(1);
+      expect(result.items[0].title).toBe(`testTitle${pageDTO.keyword}`);
+      expect(result.isEmpty).toBeFalsy();
     });
 
     it('정상 조회. 내용 기반 검색', async () => {
       pageDTO.keyword = '12';
       pageDTO.searchType = 'c';
 
-      const result: {
-        list: BoardListResponseDTO[],
-        totalElements: number
-      } = await boardService.getListService(pageDTO);
+      const result: ListResponse<BoardListResponse> = await boardService.getListService(pageDTO);
 
       expect(result).not.toBeNull();
-      expect(result.list).not.toStrictEqual([]);
-      expect(result.list.length).toBe(1);
-      expect(result.totalElements).toBe(1);
-      expect(result.list[0].boardTitle).toBe(`testTitle${pageDTO.keyword}`);
+      expect(result.items).not.toStrictEqual([]);
+      expect(result.items.length).toBe(1);
+      expect(result.totalPages).toBe(1);
+      expect(result.items[0].title).toBe(`testTitle${pageDTO.keyword}`);
+      expect(result.isEmpty).toBeFalsy();
     });
 
     it('정상 조회. 제목 or 내용 기반 검색', async () => {
       pageDTO.keyword = '13';
       pageDTO.searchType = 'tc';
 
-      const result: {
-        list: BoardListResponseDTO[],
-        totalElements: number
-      } = await boardService.getListService(pageDTO);
+      const result: ListResponse<BoardListResponse> = await boardService.getListService(pageDTO);
 
       expect(result).not.toBeNull();
-      expect(result.list).not.toStrictEqual([]);
-      expect(result.list.length).toBe(1);
-      expect(result.totalElements).toBe(1);
-      expect(result.list[0].boardTitle).toBe(`testTitle${pageDTO.keyword}`);
+      expect(result.items).not.toStrictEqual([]);
+      expect(result.items.length).toBe(1);
+      expect(result.totalPages).toBe(1);
+      expect(result.items[0].title).toBe(`testTitle${pageDTO.keyword}`);
+      expect(result.isEmpty).toBeFalsy();
     });
 
     it('정상 조회. 작성자 기반 검색', async () => {
       pageDTO.keyword = member.userId;
       pageDTO.searchType = 'u';
 
-      const result: {
-        list: BoardListResponseDTO[],
-        totalElements: number
-      } = await boardService.getListService(pageDTO);
+      const result: ListResponse<BoardListResponse> = await boardService.getListService(pageDTO);
+      const totalPagesFixture: number = getTotalPages(boardListCount, boardAmount);
 
       expect(result).not.toBeNull();
-      expect(result.list).not.toStrictEqual([]);
-      expect(result.list.length).toBe(boardAmount);
-      expect(result.totalElements).toBe(boardListCount);
+      expect(result.items).not.toStrictEqual([]);
+      expect(result.items.length).toBe(boardAmount);
+      expect(result.totalPages).toBe(totalPagesFixture);
+      expect(result.isEmpty).toBeFalsy();
     });
   })
 
   describe('getDetailService', () => {
     it('정상 조회.', async () => {
-      const result: BoardDetailResponseDTO = await boardService.getDetailService(testBoard.boardNo);
+      const result: BoardDetailResponse = await boardService.getDetailService(testBoard.id);
 
       expect(result).not.toBeNull();
-      expect(result.boardNo).toBe(testBoard.boardNo);
-      expect(result.boardTitle).toBe(testBoard.boardTitle);
-      expect(result.boardContent).toBe(testBoard.boardContent);
-      expect(result.userId).toBe(testBoard.userId);
-      expect(result.boardDate).toBeDefined();
+      expect(result.title).toBe(testBoard.title);
+      expect(result.writer).toBe(member.nickname);
+      expect(result.writerId).toBe(member.userId);
+      expect(result.content).toBe(testBoard.content);
+      expect(result.createdAt).toBeDefined();
     });
 
     it('데이터가 없는 경우', async () => {
       await expect(boardService.getDetailService(0))
         .rejects
-        .toThrow('NOT_FOUND');
+        .toThrow(BadRequestException);
     });
   });
 
   describe('postBoardService', () => {
     it('정상 처리', async () => {
-      const postDTO: PostBoardDto = new PostBoardDto();
-      postDTO.boardTitle = 'testPostBoardTitle';
-      postDTO.boardContent = 'testPostBoardContent';
-      const result: { boardNo: number } = await boardService.postBoardService(postDTO, member.userId);
+      const postDTO: PostBoardRequest = new PostBoardRequest();
+      postDTO.title = 'testPostBoardTitle';
+      postDTO.content = 'testPostBoardContent';
+      const result: number = await boardService.postBoardService(postDTO, member.id);
 
-      const postBoard: Board | null = await boardRepository.findOne({ where: { boardNo: result.boardNo } });
+      const postBoard: Board | null = await boardRepository.findOne({ where: { id: result } });
 
       expect(postBoard).not.toBeNull();
-      expect(postBoard?.boardTitle).toBe(postDTO.boardTitle);
-      expect(postBoard?.boardContent).toBe(postDTO.boardContent);
-      expect(postBoard?.userId).toBe(member.userId);
-      expect(postBoard?.boardGroupNo).toBe(result.boardNo);
-      expect(postBoard?.boardUpperNo).toBe(`${result.boardNo}`);
-      expect(postBoard?.boardIndent).toBe(1);
+      expect(postBoard?.title).toBe(postDTO.title);
+      expect(postBoard?.content).toBe(postDTO.content);
+      expect(postBoard?.userId).toBe(member.id);
+      expect(postBoard?.groupNo).toBe(result);
+      expect(postBoard?.upperNo).toBe(`${result}`);
+      expect(postBoard?.indent).toBe(0);
     });
   });
 
   describe('getBoardPatchDataService', () => {
     it('정상 조회', async () => {
-      const result: BoardPatchDetailResponseDTO = await boardService.getBoardPatchDataService(testBoard.boardNo, member.userId);
+      const result: BoardPatchDetailResponse = await boardService.getBoardPatchDataService(testBoard.id, member.id);
 
       expect(result).not.toBeNull();
-      expect(result.boardTitle).toBe(testBoard.boardTitle);
-      expect(result.boardContent).toBe(testBoard.boardContent);
+      expect(result.title).toBe(testBoard.title);
+      expect(result.content).toBe(testBoard.content);
     });
 
     it('작성자가 일치하지 않는 경우', async () => {
-      await expect(boardService.getBoardPatchDataService(testBoard.boardNo, 'noneUser'))
+      await expect(boardService.getBoardPatchDataService(testBoard.id, member.id + 1))
         .rejects
-        .toThrow('ACCESS_DENIED');
+        .toThrow(AccessDeniedException);
     });
 
     it('데이터가 없는 경우', async () => {
-      await expect(boardService.getBoardPatchDataService(0, member.userId))
+      await expect(boardService.getBoardPatchDataService(0, member.id))
         .rejects
-        .toThrow('NOT_FOUND');
+        .toThrow(BadRequestException);
     });
   });
 
   describe('patchBoardService', () => {
-    const patchDTO: PostBoardDto = new PostBoardDto();
-    patchDTO.boardTitle = 'testPatchTitle';
-    patchDTO.boardContent = 'testPatchContent';
+    const patchDTO: PostBoardRequest = new PostBoardRequest();
+    patchDTO.title = 'testPatchTitle';
+    patchDTO.content = 'testPatchContent';
     it('정상 처리', async () => {
-      const result: { boardNo: number } = await boardService.patchBoardService(testBoard.boardNo, patchDTO, member.userId);
+      const result: number = await boardService.patchBoardService(testBoard.id, patchDTO, member.id);
 
       expect(result).not.toBeNull();
-      expect(result.boardNo).toBe(testBoard.boardNo);
+      expect(result).toBe(testBoard.id);
 
-      const patchBoard: Board | null = await boardRepository.findOne({ where: { boardNo: testBoard.boardNo } });
+      const patchBoard: Board | null = await boardRepository.findOne({ where: { id: testBoard.id } });
 
       expect(patchBoard).not.toBeNull();
-      expect(patchBoard?.boardTitle).toBe(patchDTO.boardTitle);
-      expect(patchBoard?.boardContent).toBe(patchDTO.boardContent);
+      expect(patchBoard?.title).toBe(patchDTO.title);
+      expect(patchBoard?.content).toBe(patchDTO.content);
     });
 
     it('작성자가 일치하지 않는 경우', async () => {
-      await expect(boardService.patchBoardService(testBoard.boardNo, patchDTO, 'noneUser'))
+      await expect(boardService.patchBoardService(testBoard.id, patchDTO, member.id + 1))
         .rejects
-        .toThrow('ACCESS_DENIED');
+        .toThrow(AccessDeniedException);
     })
 
     it('수정할 데이터가 없는 경우', async () => {
-      await expect(boardService.patchBoardService(0, patchDTO, member.userId))
+      await expect(boardService.patchBoardService(0, patchDTO, member.id))
         .rejects
-        .toThrow('NOT_FOUND');
+        .toThrow(BadRequestException);
     });
   });
 
   describe('deleteBoardService', () => {
     it('정상 처리', async () => {
-      await boardService.deleteBoardService(testBoard.boardNo, member.userId);
+      await boardService.deleteBoardService(testBoard.id, member.id);
 
-      const deleteBoard: Board | null = await boardRepository.findOne({ where: { boardNo: testBoard.boardNo } });
+      const deleteBoard: Board | null = await boardRepository.findOne({ where: { id: testBoard.id } });
 
       expect(deleteBoard).toBeNull();
     });
 
     it('작성자가 일치하지 않는 경우', async () => {
-      await expect(boardService.deleteBoardService(testBoard.boardNo, 'noneUser'))
+      await expect(boardService.deleteBoardService(testBoard.id, member.id + 1))
         .rejects
-        .toThrow('ACCESS_DENIED');
+        .toThrow(AccessDeniedException);
 
-      const deleteBoard: Board | null = await boardRepository.findOne({ where: { boardNo: testBoard.boardNo } });
+      const deleteBoard: Board | null = await boardRepository.findOne({ where: { id: testBoard.id } });
 
       expect(deleteBoard).not.toBeNull();
     });
 
     it('삭제할 데이터가 없는 경우', async () => {
-      await expect(boardService.deleteBoardService(0, member.userId))
+      await expect(boardService.deleteBoardService(0, member.id))
         .rejects
-        .toThrow('NOT_FOUND');
+        .toThrow(BadRequestException);
     });
   });
 
   describe('getReplyDataService', () => {
     it('정상 조회', async () => {
-      const result: BoardReplyDataDTO = await boardService.getReplyDataService(testBoard.boardNo);
-
-      expect(result).not.toBeNull();
-      expect(result.boardGroupNo).toBe(testBoard.boardGroupNo);
-      expect(result.boardUpperNo).toBe(testBoard.boardUpperNo);
-      expect(result.boardIndent).toBe(testBoard.boardIndent);
+      await boardService.getReplyDataService(testBoard.id);
     });
 
     it('데이터가 없는 경우', async () => {
       await expect(boardService.getReplyDataService(0))
         .rejects
-        .toThrow('NOT_FOUND');
+        .toThrow(BadRequestException);
     });
   });
 
   describe('postBoardReplyService', () => {
     it('정상 처리', async () => {
-      const replyDTO: PostReplyDTO = new PostReplyDTO();
-      replyDTO.boardTitle = 'testPostReplyTitle';
-      replyDTO.boardContent = 'testPostReplyContent';
-      replyDTO.boardGroupNo = testBoard.boardGroupNo;
-      replyDTO.boardUpperNo = testBoard.boardUpperNo;
-      replyDTO.boardIndent = testBoard.boardIndent;
+      const replyDTO: PostReplyRequest = new PostReplyRequest();
+      replyDTO.title = 'testPostReplyTitle';
+      replyDTO.content = 'testPostReplyContent';
 
-      const result: { boardNo: number } = await boardService.postBoardReplyService(replyDTO, member.userId);
+      const result: number = await boardService.postBoardReplyService(replyDTO, testBoard.id, member.id);
 
-      expect(result).not.toBeNull();
-
-      const replyBoard: Board | null = await boardRepository.findOne({ where: { boardNo: result.boardNo } });
+      const replyBoard: Board | null = await boardRepository.findOne({ where: { id: result } });
 
       expect(replyBoard).not.toBeNull();
-      expect(replyBoard?.boardTitle).toBe(replyDTO.boardTitle);
-      expect(replyBoard?.boardContent).toBe(replyDTO.boardContent);
-      expect(replyBoard?.boardDate).toBeDefined();
-      expect(replyBoard?.userId).toBe(member.userId);
-      expect(replyBoard?.boardGroupNo).toBe(replyDTO.boardGroupNo);
-      expect(replyBoard?.boardIndent).toBe(replyDTO.boardIndent + 1);
-      expect(replyBoard?.boardUpperNo).toBe(`${replyDTO.boardUpperNo},${result.boardNo}`);
+      expect(replyBoard?.title).toBe(replyDTO.title);
+      expect(replyBoard?.content).toBe(replyDTO.content);
+      expect(replyBoard?.createdAt).toBeDefined();
+      expect(replyBoard?.userId).toBe(member.id);
+      expect(replyBoard?.groupNo).toBe(testBoard.groupNo);
+      expect(replyBoard?.indent).toBe(testBoard.indent + 1);
+      expect(replyBoard?.upperNo).toBe(`${testBoard.upperNo},${result}`);
     });
+
+    it('상위 게시글 번호가 잘못된 경우', async () => {
+      const replyDTO: PostReplyRequest = new PostReplyRequest();
+      replyDTO.title = 'testPostReplyTitle';
+      replyDTO.content = 'testPostReplyContent';
+
+      await expect(boardService.postBoardReplyService(replyDTO, 0, member.id))
+        .rejects
+        .toThrow(BadRequestException);
+    })
   })
 })

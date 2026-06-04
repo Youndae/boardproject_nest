@@ -3,20 +3,25 @@ import { PassportStrategy } from "@nestjs/passport";
 import { Strategy } from "passport-local";
 import { MemberRepository } from "#member/repositories/member.repository";
 import bcrypt from 'bcrypt';
+import { MemberAuthInfo } from '#common/dtos/business/member-auth-info.dto';
+import { InternalServerErrorException } from '#common/exceptions/internal-server-error.exception';
+import { getHighestRole } from '#common/utils/auth.utils';
+import { AuthRepository } from '#member/repositories/auth.repository';
 
 @Injectable()
 export class LocalStrategy extends PassportStrategy(Strategy) {
   constructor(
-	private readonly memberRepository: MemberRepository
+	private readonly memberRepository: MemberRepository,
+  private readonly authRepository: AuthRepository,
   ) {
   	super({
 	usernameField: 'userId',
-	passwordField: 'userPw',
+	passwordField: 'password',
 	session: false,
 	});
   }
 
-  async validate(userId: string, userPw: string): Promise<any> {
+  async validate(userId: string, password: string): Promise<any> {
     try {
       const member = await this.memberRepository.findMemberByUserIdFromLocal(userId);
 
@@ -24,15 +29,23 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
         return null;
       }
 
-      const isMatch = await bcrypt.compare(userPw, member.userPw);
+      const isMatch = await bcrypt.compare(password, member.password!);
 
       if(!isMatch){
         return null;
       }
 
-      console.log('passport local userId : ', userId);
+      const memberInfo: MemberAuthInfo | undefined = await this.authRepository.getMemberAuthInfo(userId);
 
-      return { userId };
+      if(!memberInfo)
+        throw new InternalServerErrorException();
+
+      const highestRole: string = getHighestRole(memberInfo.roles);
+
+      return {
+        userId,
+        role: highestRole,
+      };
     }catch(error){
       throw error;
     }

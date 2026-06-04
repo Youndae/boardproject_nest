@@ -12,8 +12,11 @@ import { MemberModule } from '#member/member.module';
 import { ImageBoardModule } from '#imageBoard/image-board.module';
 import { Member } from '#member/entities/member.entity';
 import { PaginationDTO } from '#common/dtos/in/pagination.dto';
-import { ImageBoardListResponseDTO } from '#imageBoard/dtos/out/image-board-list-response.dto';
-import { ImageBoardDetailResponseDTO } from '#imageBoard/dtos/out/image-board-detail-response.dto';
+import { ImageBoardListResponse } from '#imageBoard/dtos/out/image-board-list.response.dto';
+import { ImageBoardDetailResponse } from '#imageBoard/dtos/out/image-board-detail.response.dto';
+import { PAGE_AMOUNT } from '#common/constants/common-page-amount.constants';
+import { ListResponse } from '#common/dtos/out/list.response.dto';
+import { getTotalPages } from '../../utils/pagination.utils';
 
 describe('imageBoardRepository', () => {
   let memberRepository: MemberRepository;
@@ -27,7 +30,7 @@ describe('imageBoardRepository', () => {
   let boardListCount: number = 20;
   const member: Member = new Member();
 
-  const boardAmount: number = 15;
+  const boardAmount: number = PAGE_AMOUNT.IMAGE;
 
   beforeAll(async () => {
     initializeTransactionalContext();
@@ -58,15 +61,16 @@ describe('imageBoardRepository', () => {
     await memberRepository.deleteAll();
 
     member.userId = 'tester';
-    member.userPw = '1234';
-    member.userName = 'testerName';
-    member.nickName = 'testerNickname';
+    member.password = '1234';
+    member.username = 'testerName';
+    member.nickname = 'testerNickname';
     member.email = 'tester@tester.com';
-    member.profileThumbnail = 'localProfileName.jpg';
+    member.profile = 'localProfileName.jpg';
     member.provider = 'local';
 
     const saveMember: Member = memberRepository.create(member);
-    await memberRepository.save(saveMember);
+    const savedMember: Member = await memberRepository.save(saveMember);
+    member.id = savedMember.id;
   });
 
   beforeEach(async () => {
@@ -79,9 +83,9 @@ describe('imageBoardRepository', () => {
     for(let i  = 0; i < boardListCount; i++) {
       imageBoardArr.push(
         imageBoardRepository.create({
-          userId: member.userId,
-          imageTitle: `testImageTitle${i}`,
-          imageContent: `testImageContent${i}`
+          userId: member.id,
+          title: `testImageTitle${i}`,
+          content: `testImageContent${i}`
         })
       );
     };
@@ -92,9 +96,9 @@ describe('imageBoardRepository', () => {
       for(let i = 0; i < 3; i++) {
         imageDataArr.push(
           imageDataRepository.create({
-            imageName: `board/${saveBoard.imageTitle}'sImage${i}.jpg`,
-            imageNo: saveBoard.imageNo,
-            oldName: `${saveBoard.imageTitle}'sOriginName${i}.jpg`,
+            imageName: `board/${saveBoard.title}'sImage${i}.jpg`,
+            imageId: saveBoard.id,
+            originName: `${saveBoard.title}'sOriginName${i}.jpg`,
             imageStep: i
           })
         );
@@ -120,18 +124,18 @@ describe('imageBoardRepository', () => {
     it('정상 조회. 검색어 없음.', async () => {
       const pageDTO: PaginationDTO = new PaginationDTO();
 
-      const result: {
-        list: ImageBoardListResponseDTO[],
-        totalElements: number
-      } = await imageBoardRepository.getImageBoardList(pageDTO);
+      const result: ListResponse<ImageBoardListResponse> = await imageBoardRepository.getImageBoardList(pageDTO);
+      const totalPageFixture: number = getTotalPages(boardListCount, boardAmount);
 
-      expect(result.list.length).toBe(boardAmount);
-      expect(result.totalElements).toBe(boardListCount);
+      expect(result.items.length).toBe(boardAmount);
+      expect(result.totalPages).toBe(totalPageFixture);
+      expect(result.isEmpty).toBeFalsy();
+      expect(result.currentPage).toBe(1);
 
       let objectCount = boardListCount - 1;
 
-      for(const listDTO of result.list) {
-        expect(listDTO.imageTitle.endsWith(`Title${objectCount}`)).toBeTruthy();
+      for(const listDTO of result.items) {
+        expect(listDTO.title.endsWith(`Title${objectCount}`)).toBeTruthy();
         expect(listDTO.imageName.endsWith(`Image0.jpg`)).toBeTruthy();
         objectCount--;
       };
@@ -142,13 +146,12 @@ describe('imageBoardRepository', () => {
       await imageDataRepository.deleteAll();
       await imageBoardRepository.deleteAll();
 
-      const result: {
-        list: ImageBoardListResponseDTO[],
-        totalElements: number
-      } = await imageBoardRepository.getImageBoardList(pageDTO);
+      const result: ListResponse<ImageBoardListResponse> = await imageBoardRepository.getImageBoardList(pageDTO);
 
-      expect(result.list).toStrictEqual([]);
-      expect(result.totalElements).toBe(0);
+      expect(result.items).toStrictEqual([]);
+      expect(result.totalPages).toBe(0);
+      expect(result.isEmpty).toBeTruthy();
+      expect(result.currentPage).toBe(1);
     });
 
     it('정상 조회. 제목 기반 검색', async () => {
@@ -156,14 +159,13 @@ describe('imageBoardRepository', () => {
       pageDTO.keyword = '11';
       pageDTO.searchType = 't';
 
-      const result: {
-        list: ImageBoardListResponseDTO[],
-        totalElements: number
-      } = await imageBoardRepository.getImageBoardList(pageDTO);
+      const result: ListResponse<ImageBoardListResponse> = await imageBoardRepository.getImageBoardList(pageDTO);
 
-      expect(result.list.length).toBe(1);
-      expect(result.totalElements).toBe(1);
-      expect(result.list[0].imageTitle.endsWith('Title11')).toBeTruthy();
+      expect(result.items.length).toBe(1);
+      expect(result.totalPages).toBe(1);
+      expect(result.isEmpty).toBeFalsy();
+      expect(result.currentPage).toBe(1);
+      expect(result.items[0].title.endsWith('Title11')).toBeTruthy();
     });
 
     it('정상 조회. 내용 기반 검색', async () => {
@@ -171,14 +173,13 @@ describe('imageBoardRepository', () => {
       pageDTO.keyword = '11';
       pageDTO.searchType = 'c';
 
-      const result: {
-        list: ImageBoardListResponseDTO[],
-        totalElements: number
-      } = await imageBoardRepository.getImageBoardList(pageDTO);
+      const result: ListResponse<ImageBoardListResponse> = await imageBoardRepository.getImageBoardList(pageDTO);
 
-      expect(result.list.length).toBe(1);
-      expect(result.totalElements).toBe(1);
-      expect(result.list[0].imageTitle.endsWith('Title11')).toBeTruthy();
+      expect(result.items.length).toBe(1);
+      expect(result.totalPages).toBe(1);
+      expect(result.isEmpty).toBeFalsy();
+      expect(result.currentPage).toBe(1);
+      expect(result.items[0].title.endsWith('Title11')).toBeTruthy();
     });
 
     it('정상 조회. 제목 or 내용 기반 검색', async () => {
@@ -186,14 +187,11 @@ describe('imageBoardRepository', () => {
       pageDTO.keyword = '11';
       pageDTO.searchType = 'tc';
 
-      const result: {
-        list: ImageBoardListResponseDTO[],
-        totalElements: number
-      } = await imageBoardRepository.getImageBoardList(pageDTO);
+      const result: ListResponse<ImageBoardListResponse> = await imageBoardRepository.getImageBoardList(pageDTO);
 
-      expect(result.list.length).toBe(1);
-      expect(result.totalElements).toBe(1);
-      expect(result.list[0].imageTitle.endsWith('Title11')).toBeTruthy();
+      expect(result.items.length).toBe(1);
+      expect(result.totalPages).toBe(1);
+      expect(result.items[0].title.endsWith('Title11')).toBeTruthy();
     });
 
     it('정상 조회. 작성자 기반 검색', async () => {
@@ -201,18 +199,18 @@ describe('imageBoardRepository', () => {
       pageDTO.keyword = 'test';
       pageDTO.searchType = 'u';
 
-      const result: {
-        list: ImageBoardListResponseDTO[],
-        totalElements: number
-      } = await imageBoardRepository.getImageBoardList(pageDTO);
+      const result: ListResponse<ImageBoardListResponse> = await imageBoardRepository.getImageBoardList(pageDTO);
+      const totalPageFixture: number = getTotalPages(boardListCount, boardAmount);
 
-      expect(result.list.length).toBe(boardAmount);
-      expect(result.totalElements).toBe(boardListCount);
+      expect(result.items.length).toBe(boardAmount);
+      expect(result.totalPages).toBe(totalPageFixture);
+      expect(result.isEmpty).toBeFalsy();
+      expect(result.currentPage).toBe(1);
 
       let objectCount = boardListCount - 1;
 
-      for(const listDTO of result.list) {
-        expect(listDTO.imageTitle.endsWith(`Title${objectCount}`)).toBeTruthy();
+      for(const listDTO of result.items) {
+        expect(listDTO.title.endsWith(`Title${objectCount}`)).toBeTruthy();
         expect(listDTO.imageName.endsWith(`Image0.jpg`)).toBeTruthy();
         objectCount--;
       };
@@ -223,55 +221,52 @@ describe('imageBoardRepository', () => {
       pageDTO.keyword = '11';
       pageDTO.searchType = 'ab';
 
-      const result: {
-        list: ImageBoardListResponseDTO[],
-        totalElements: number
-      } = await imageBoardRepository.getImageBoardList(pageDTO);
+      const result: ListResponse<ImageBoardListResponse> = await imageBoardRepository.getImageBoardList(pageDTO);
 
-      expect(result.list).toStrictEqual([]);
-      expect(result.totalElements).toBe(0);
+      expect(result.items).toStrictEqual([]);
+      expect(result.totalPages).toBe(0);
+      expect(result.isEmpty).toBeTruthy();
+      expect(result.currentPage).toBe(1);
     });
 
     it('정상 조회. 2페이지 조회', async () => {
       const pageDTO: PaginationDTO = new PaginationDTO();
-      pageDTO.pageNum = 2;
+      pageDTO.page = 2;
 
-      const result: {
-        list: ImageBoardListResponseDTO[],
-        totalElements: number
-      } = await imageBoardRepository.getImageBoardList(pageDTO);
+      const result: ListResponse<ImageBoardListResponse> = await imageBoardRepository.getImageBoardList(pageDTO);
+      const totalPageFixture: number = getTotalPages(boardListCount, boardAmount);
 
       const page2ElementsCount: number = boardListCount - boardAmount;
 
-      expect(result.list.length).toBe(page2ElementsCount);
-      expect(result.totalElements).toBe(boardListCount);
+      expect(result.items.length).toBe(page2ElementsCount);
+      expect(result.totalPages).toBe(totalPageFixture);
+      expect(result.isEmpty).toBeFalsy();
+      expect(result.currentPage).toBe(2);
 
       let listNumber: number = page2ElementsCount - 1;
-      result.list.forEach(dto =>
-        expect(dto.imageTitle.endsWith(`Title${listNumber--}`))
+      result.items.forEach(dto =>
+        expect(dto.title.endsWith(`Title${listNumber--}`))
       );
     });
   });
 
   describe('getImageBoardDetail', () => {
     it('정상 조회.', async () => {
-      const result: ImageBoardDetailResponseDTO | null = await imageBoardRepository.getImageBoardDetail(testBoard.imageNo);
+      const result: ImageBoardDetailResponse | null = await imageBoardRepository.getImageBoardDetail(testBoard.id);
 
       expect(result).not.toBeNull();
-      expect(result?.imageTitle).toBe(testBoard.imageTitle);
-      expect(result?.imageContent).toBe(testBoard.imageContent);
-      expect(result?.imageData).not.toStrictEqual([]);
+      expect(result?.title).toBe(testBoard.title);
+      expect(result?.content).toBe(testBoard.content);
+      expect(result?.imageDataList).not.toStrictEqual([]);
       let imageStep: number = 0;
-      for(const imageData of result!.imageData) {
-        expect(imageData.imageName).toBe(`board/${testBoard.imageTitle}'sImage${imageStep}.jpg`);
-        expect(imageData.oldName).toBe(`${testBoard.imageTitle}'sOriginName${imageStep}.jpg`);
-        expect(imageData.imageStep).toBe(imageStep);
+      for(const imageData of result!.imageDataList) {
+        expect(imageData).toBe(`board/${testBoard.title}'sImage${imageStep}.jpg`);
         imageStep++;
       }
     });
 
     it('게시글 번호가 잘못된 경우', async () => {
-      const result: ImageBoardDetailResponseDTO | null = await imageBoardRepository.getImageBoardDetail(0);
+      const result: ImageBoardDetailResponse | null = await imageBoardRepository.getImageBoardDetail(0);
 
       expect(result).toBeNull();
     })

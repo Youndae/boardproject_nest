@@ -15,6 +15,12 @@ export function appendSizeSuffix(storedFilename: string, size: number): string {
 	return `${baseName}_${size}${ext}`;
 }
 
+export function appendSizeSuffixByJPEG(storedFilename: string, size: number): string {
+  const { baseName, ext } = getBaseNameAndExt(storedFilename);
+
+  return `${baseName}_${size}.jpg`;
+}
+
 export function getBaseNameAndExt(storedFilename: string): { baseName: string, ext: string } {
 	const ext = path.extname(storedFilename);
 	const baseName = path.basename(storedFilename, ext);

@@ -8,15 +8,20 @@ import { TokenStealingException } from '#common/exceptions/token-stealing.except
 import { AuthRepository } from '#member/repositories/auth.repository';
 import { UnauthorizedException } from '#common/exceptions/unauthorized.exception';
 import { InternalServerErrorException } from '#common/exceptions/internal-server-error.exception';
+import { MemberAuthInfo } from '#common/dtos/business/member-auth-info.dto';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
+  private readonly logger: LoggerService;
+
   constructor(
     private readonly tokenProvider: JWTTokenProvider,
     private readonly configService: ConfigService,
-    private readonly logger: LoggerService,
+    private readonly originalLogger: LoggerService,
     private readonly authRepository: AuthRepository,
-  ) {}
+  ) {
+    this.logger = this.originalLogger.setContext(JwtAuthGuard.name);
+  }
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
     let username: string | null = null;
@@ -75,17 +80,17 @@ export class JwtAuthGuard implements CanActivate {
     }
 
 	if(username){
-    const auths: string[] = await this.authRepository.getMemberAuths(username);
+    const memberInfo: MemberAuthInfo | undefined = await this.authRepository.getMemberAuthInfo(username);
 
-    if(auths.length === 0)
+    if(!memberInfo)
       throw new InternalServerErrorException();
 
     request.user = {
+      id: memberInfo.id,
       userId: username,
-      roles: auths
+      roles: memberInfo.roles
     }
   }
-
 	
     return true;
   }

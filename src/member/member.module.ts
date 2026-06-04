@@ -11,26 +11,27 @@ import { LoggerModule } from '#config/logger/logger.module';
 import { ConfigModule } from '@nestjs/config';
 import { GuardModule } from '#common/guards/guard.module';
 
+
 @Module({
 	imports: [
     TypeOrmModule.forFeature([
       Member,
       Auth
     ]),
+    ConfigModule,
     FileModule,
     LoggerModule,
-    ConfigModule,
-    GuardModule
+    GuardModule,
   ],
 	controllers: [MemberController],
 	providers: [
     MemberService,
     AuthRepository,
-    MemberRepository
+    MemberRepository,
   ],
 	exports: [
     AuthRepository,
-    MemberRepository
+    MemberRepository,
   ]
 })
 export class MemberModule {}

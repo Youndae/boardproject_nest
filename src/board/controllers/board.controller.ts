@@ -15,391 +15,204 @@ import { BoardService } from '#board/services/board.service';
 import { Roles } from '#common/decorators/roles.decorator';
 import { RolesGuard } from '#common/guards/roles.guard';
 import type { Request } from 'express';
-import { PostBoardDto } from '#board/dtos/in/post-board.dto';
+import { PostBoardRequest } from '#board/dtos/in/post-board.request.dto';
 import {
   ApiBadRequestResponse,
   ApiBody, ApiForbiddenResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse,
   ApiOkResponse, ApiOperation,
   ApiParam,
   ApiTags,
-  getSchemaPath,
 } from '@nestjs/swagger';
-import { createListResponseDTO } from '#common/dtos/out/list-response.dto';
-import { UserStatusDTO } from '#common/dtos/out/user-status.dto';
-import { createDetailResponseDTO } from '#common/dtos/out/detail-response.dto';
-import { BoardDetailResponseDTO } from '#board/dtos/out/board-detail-response.dto';
+import { ListResponse } from '#common/dtos/out/list.response.dto';
+import { BoardDetailResponse } from '#board/dtos/out/board-detail.response.dto';
 import { ApiNoContentVoid } from '#common/decorators/swagger/no-content-void.decorator';
-import { CustomApiCreatedResponse } from '#common/decorators/swagger/created.decorator';
-import { ApiBoardExtraModels } from '#board/swagger/decorator/board-extra-models.decorator';
-import { BoardListResponseDTO } from '#board/dtos/out/board-list-response.dto';
-import { BoardPatchDetailResponseDTO } from '#board/dtos/out/board-patch-detail-response.dto';
-import { BoardReplyDataDTO } from '#board/dtos/out/board-reply-data.dto';
-import { PostReplyDTO } from '#board/dtos/in/post-reply.dto';
+import { BoardListResponse } from '#board/dtos/out/board-list.response.dto';
+import { BoardPatchDetailResponse } from '#board/dtos/out/board-patch-detail.response.dto';
+import { PostReplyRequest } from '#board/dtos/in/post-reply.request.dto';
 import { ApiBearerCookie } from '#common/decorators/swagger/api-bearer-cookie.decorator';
 import { PaginationDTO } from '#common/dtos/in/pagination.dto';
-import { UserStatusDTOMapper } from '#common/mapper/user-status.mapper';
-import { getAuthUserId } from '#common/utils/auth.utils';
+import { getAuthId } from '#common/utils/auth.utils';
 import { ResponseStatusConstants } from '#common/constants/response-status.constants';
 import { ApiAuthExceptionResponse } from '#common/decorators/swagger/api-auth-exception-response.decorator';
 import {
   PostBoardBadRequestExamples,
   PostBoardReplyBadRequestExamples,
 } from '#board/swagger/examples/board-error.example';
-
-
-const ListResponseDTO = createListResponseDTO(BoardListResponseDTO, 'board');
-const DetailResponseDTO = createDetailResponseDTO(BoardDetailResponseDTO, 'boardDetail');
-const PatchDetailResponseDTO = createDetailResponseDTO(BoardPatchDetailResponseDTO,'patchDetail');
-const ReplyDataResponseDTO = createDetailResponseDTO(BoardReplyDataDTO, 'replyData');
+import { ApiCombinedResponse } from '#common/decorators/swagger/api-response.decorator';
+import { ApiPrimitiveResponse } from '#common/decorators/swagger/api-primitive-response.decorator';
 
 @ApiTags('Boards')
-@ApiBoardExtraModels(
-  ListResponseDTO,
-  DetailResponseDTO,
-  PatchDetailResponseDTO,
-  ReplyDataResponseDTO
-)
 @Controller('board')
 @ApiAuthExceptionResponse()
 @ApiInternalServerErrorResponse({
   description: '서버 오류',
   example: {
     statusCode: ResponseStatusConstants.INTERNAL_SERVER_ERROR.CODE,
-    message: 'Internal server error'
-  }
+    message: 'Internal server error',
+  },
 })
 export class BoardController {
+  constructor(private readonly boardService: BoardService) {}
 
-  constructor(
-    private readonly boardService: BoardService
-  ) { }
-
-
-  /**
-   *
-   * @param pageDTO {
-   *  keyword?: string,
-   *  searchType?: string,
-   *  pageNum?: number = 1
-   * } query
-   * @param req {
-   *   user?: {
-   *     userId: string,
-   *     roles: string[]
-   *   }
-   * }
-   *
-   * @returns {
-   *   status: 200,
-   *   data: ListResponseDTO<T> {
-   *     content: BoardListResponseDTO [
-   *       {
-   *         boardNo: number,
-   *         boardTitle: string,
-   *         userId: string,
-   *         boardDate: Date,
-   *         boardIndent: number
-   *       }
-   *     ],
-   *     empty: boolean,
-   *     totalElements: number,
-   *     userStatus: UserStatusDTO {
-   *       loggedIn: boolean,
-   *       uid: string
-   *     }
-   *   }
-   * }
-   */
   @Get('/')
   @HttpCode(200)
   @ApiOperation({ summary: '게시글 목록 조회' })
-  @ApiOkResponse({
-    description: '정상 조회',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(ListResponseDTO) },
-      ],
-    },
-  })
+  @ApiCombinedResponse(BoardListResponse, true)
   async getList(
     @Query() pageDTO: PaginationDTO,
-    @Req() req: Request
-  ): Promise<InstanceType<typeof ListResponseDTO>> {
-    const boardList: { list: BoardListResponseDTO[], totalElements: number } = await this.boardService.getListService(pageDTO);
-    const userStatus: UserStatusDTO = UserStatusDTOMapper.createUserStatusByReq(req);
-
-    return new ListResponseDTO(boardList.list, boardList.totalElements, userStatus);
+  ): Promise<ListResponse<BoardListResponse>> {
+    return await this.boardService.getListService(pageDTO);
   }
 
-  /**
-   * @param boardNo
-   * @param req {
-   *   user?: {
-   *     userId: string,
-   *     roles: string[]
-   *   }
-   * }
-   *
-   * @returns {
-   *   status: 200,
-   *   data: DetailResponseDTO<T> {
-   *     content: BoardDetailDTO {
-   *       boardNo: number,
-   *       boardTitle: string,
-   *       boardContent: string,
-   *       userId: string,
-   *       boardDate: Date
-   *     },
-   *     userStatus: UserStatusDTO {
-   *       loggedIn: boolean,
-   *       uid: string
-   *     }
-   *   }
-   * }
-   */
-  @Get('/:boardNo')
+
+  @Get('/:id')
   @HttpCode(200)
   @ApiOperation({ summary: '게시글 상세 조회' })
   @ApiParam({
-    name: 'boardNo',
+    name: 'id',
     required: true,
     description: '게시글 번호',
-    type: Number
+    type: Number,
   })
-  @ApiOkResponse({
-    description: '정상 조회',
-    schema: {
-      $ref: getSchemaPath(DetailResponseDTO)
-    },
-  })
+  @ApiCombinedResponse(BoardDetailResponse)
   @ApiNotFoundResponse({
     description: '데이터 없음',
     example: {
       statusCode: ResponseStatusConstants.NOT_FOUND.CODE,
-      message: ResponseStatusConstants.NOT_FOUND.MESSAGE
-    }
+      message: ResponseStatusConstants.NOT_FOUND.MESSAGE,
+    },
   })
   async getDetail(
-    @Param('boardNo', ParseIntPipe) boardNo: number,
-    @Req() req: Request
-  ): Promise<InstanceType<typeof DetailResponseDTO>> {
-    const boardDetail: BoardDetailResponseDTO = await this.boardService.getDetailService(boardNo);
-    const userStatus: UserStatusDTO = UserStatusDTOMapper.createUserStatusByReq(req);
-
-    return new DetailResponseDTO(boardDetail, userStatus);
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<BoardDetailResponse> {
+    return await this.boardService.getDetailService(id);
   }
 
-  /**
-   * @param postBoardDTO {
-   *   boardTitle: string,
-   *   boardContent: string
-   * } body
-   * @param req {
-   *   user?: {
-   *     userId: string,
-   *     roles: string[]
-   *   }
-   * }
-   *
-   * @returns {
-   *   status 201,
-   *   data: {
-   *     boardNo: number
-   *   }
-   * }
-   */
   @Roles('ROLE_MEMBER')
   @UseGuards(RolesGuard)
   @Post('/')
   @HttpCode(201)
   @ApiBearerCookie()
   @ApiOperation({ summary: '게시글 작성' })
-  @ApiBody({ type: PostBoardDto })
-  @CustomApiCreatedResponse(
-    '게시글 작성 완료',
-    {
-      boardNo: 1
-    }
-  )
+  @ApiBody({ type: PostBoardRequest })
+  @ApiPrimitiveResponse('number', 201)
   @ApiAuthExceptionResponse()
   @ApiBadRequestResponse({
     description: '요청 데이터 오류',
     content: {
       'application/json': {
-        examples: PostBoardBadRequestExamples
-      }
-    }
+        examples: PostBoardBadRequestExamples,
+      },
+    },
   })
-  async postBoard(@Body() postBoardDTO: PostBoardDto, @Req() req: Request): Promise<{ boardNo: number }> {
-    const userId: string = getAuthUserId(req);
+  async postBoard(
+    @Body() postBoardDTO: PostBoardRequest,
+    @Req() req: Request,
+  ): Promise<number> {
+    const userId: number = getAuthId(req);
 
     return await this.boardService.postBoardService(postBoardDTO, userId);
   }
 
-  /**
-   * @param boardNo
-   * @param req {
-   *   user?: {
-   *     userId: string,
-   *     roles: string[]
-   *   }
-   * }
-   *
-   * @returns {
-   *   status: 200,
-   *   data: DetailResponseDTO<T> {
-   *     content: patchBoardResponseDTO {
-   *       boardNo: number,
-   *       boardTitle: string,
-   *       boardContent: string
-   *     },
-   *     userStatus: UserStatusDTO {
-   *       loggedIn: boolean,
-   *       uid: string
-   *     }
-   *   }
-   * }
-   */
   @Roles('ROLE_MEMBER')
   @UseGuards(RolesGuard)
-  @Get('/patch-detail/:boardNo')
+  @Get('/patch-detail/:id')
   @HttpCode(200)
   @ApiBearerCookie()
   @ApiOperation({ summary: '게시글 수정 데이터 조회' })
   @ApiParam({
-    name: 'boardNo',
+    name: 'id',
     required: true,
     description: '게시글 번호',
-    type: Number
+    type: Number,
   })
-  @ApiOkResponse({
-    description: '정상 조회',
-    schema: { $ref: getSchemaPath(PatchDetailResponseDTO) }
-  })
+  @ApiCombinedResponse(BoardPatchDetailResponse)
   @ApiAuthExceptionResponse()
   @ApiNotFoundResponse({
     description: '데이터 없음',
     example: {
       statusCode: ResponseStatusConstants.NOT_FOUND.CODE,
-      message: ResponseStatusConstants.NOT_FOUND.MESSAGE
-    }
+      message: ResponseStatusConstants.NOT_FOUND.MESSAGE,
+    },
   })
   @ApiForbiddenResponse({
     description: '작성자 불일치',
     example: {
       statusCode: ResponseStatusConstants.ACCESS_DENIED.CODE,
-      message: ResponseStatusConstants.ACCESS_DENIED.MESSAGE
-    }
+      message: ResponseStatusConstants.ACCESS_DENIED.MESSAGE,
+    },
   })
   async getPatchDetail(
-    @Param('boardNo', ParseIntPipe) boardNo: number,
-    @Req() req: Request
-  ): Promise<InstanceType<typeof PatchDetailResponseDTO>> {
-    const userId: string = getAuthUserId(req);
-    const patchDetail: BoardPatchDetailResponseDTO = await this.boardService.getBoardPatchDataService(boardNo, userId);
-    const userStatus: UserStatusDTO = UserStatusDTOMapper.createUserStatusByUserId(userId);
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request,
+  ): Promise<BoardPatchDetailResponse> {
+    const userId: number = getAuthId(req);
 
-    return new PatchDetailResponseDTO(patchDetail, userStatus);
+    return await this.boardService.getBoardPatchDataService(id, userId);
   }
 
-  /**
-   *
-   * @param boardNo
-   * @param patchBoardDTO {
-   *   boardTitle: string,
-   *   boardContent: string
-   * } body
-   * @param req {
-   *   user?: {
-   *     userId: string,
-   *     roles: string[]
-   *   }
-   * }
-   *
-   * @returns {
-   *   status: 200,
-   *   data: {
-   *     boardNo: number
-   *   }
-   * }
-   */
   @Roles('ROLE_MEMBER')
   @UseGuards(RolesGuard)
-  @Patch('/:boardNo')
+  @Patch('/:id')
   @HttpCode(200)
   @ApiBearerCookie()
   @ApiOperation({ summary: '게시글 수정' })
   @ApiParam({
-    name: 'boardNo',
+    name: 'id',
     required: true,
     description: '게시글 번호',
-    type: Number
+    type: Number,
   })
-  @ApiBody({ type: PostBoardDto })
-  @ApiOkResponse({
-    description: '게시글 수정 완료',
-    schema: {
-      example: { boardNo: 1 }
-    }
-  })
+  @ApiBody({ type: PostBoardRequest })
+  @ApiPrimitiveResponse('number', 200)
   @ApiAuthExceptionResponse()
   @ApiNotFoundResponse({
     description: '데이터 없음',
     example: {
       statusCode: ResponseStatusConstants.NOT_FOUND.CODE,
-      message: ResponseStatusConstants.NOT_FOUND.MESSAGE
-    }
+      message: ResponseStatusConstants.NOT_FOUND.MESSAGE,
+    },
   })
   @ApiForbiddenResponse({
     description: '작성자 불일치',
     example: {
       statusCode: ResponseStatusConstants.ACCESS_DENIED.CODE,
-      message: ResponseStatusConstants.ACCESS_DENIED.MESSAGE
-    }
+      message: ResponseStatusConstants.ACCESS_DENIED.MESSAGE,
+    },
   })
   @ApiBadRequestResponse({
     description: '요청 데이터 오류',
     content: {
       'application/json': {
-        examples: PostBoardBadRequestExamples
-      }
-    }
+        examples: PostBoardBadRequestExamples,
+      },
+    },
   })
   async patchBoard(
-    @Param('boardNo', ParseIntPipe) boardNo: number,
-    @Body() patchBoardDTO: PostBoardDto,
-    @Req() req: Request
-  ): Promise<{ boardNo: number }> {
-    const userId: string = getAuthUserId(req);
+    @Param('id', ParseIntPipe) boardNo: number,
+    @Body() patchBoardDTO: PostBoardRequest,
+    @Req() req: Request,
+  ): Promise<number> {
+    const userId: number = getAuthId(req);
 
-    return await this.boardService.patchBoardService(boardNo, patchBoardDTO, userId);
+    return await this.boardService.patchBoardService(
+      boardNo,
+      patchBoardDTO,
+      userId,
+    );
   }
 
-  /**
-   *
-   * @param boardNo
-   * @param req {
-   *   user?: {
-   *     userId: string,
-   *     roles: string[]
-   *   }
-   * }
-   *
-   * @returns {
-   *   status: 204
-   * }
-   */
   @Roles('ROLE_MEMBER')
   @UseGuards(RolesGuard)
-  @Delete('/:boardNo')
+  @Delete('/:id')
   @ApiBearerCookie()
   @ApiOperation({ summary: '게시글 삭제' })
   @HttpCode(204)
   @ApiParam({
-    name: 'boardNo',
+    name: 'id',
     required: true,
     description: '게시글 번호',
-    type: Number
+    type: Number,
   })
   @ApiNoContentVoid('삭제 완료')
   @ApiAuthExceptionResponse()
@@ -407,141 +220,91 @@ export class BoardController {
     description: '데이터 없음',
     example: {
       statusCode: ResponseStatusConstants.NOT_FOUND.CODE,
-      message: ResponseStatusConstants.NOT_FOUND.MESSAGE
-    }
+      message: ResponseStatusConstants.NOT_FOUND.MESSAGE,
+    },
   })
   @ApiForbiddenResponse({
     description: '작성자 불일치',
     example: {
       statusCode: ResponseStatusConstants.ACCESS_DENIED.CODE,
-      message: ResponseStatusConstants.ACCESS_DENIED.MESSAGE
-    }
+      message: ResponseStatusConstants.ACCESS_DENIED.MESSAGE,
+    },
   })
   async deleteBoard(
-    @Param('boardNo', ParseIntPipe) boardNo: number,
-    @Req() req: Request
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request,
   ): Promise<void> {
-    const userId: string = getAuthUserId(req);
+    const userId: number = getAuthId(req);
 
-    await this.boardService.deleteBoardService(boardNo, userId);
+    await this.boardService.deleteBoardService(id, userId);
   }
 
-  /**
-   *
-   * @param boardNo
-   * @param req {
-   *   user?: {
-   *     userId: string,
-   *     roles: string[]
-   *   }
-   * }
-   *
-   * @returns {
-   *   status: 200,
-   *   data: DetailResponseDTO<T> {
-   *     content: BoardReplyResponseDTO {
-   *       boardGroupNo: number,
-   *       boardUpperNo: string,
-   *       boardIndent: number
-   *     },
-   *     userStatus: UserStatusDTO {
-   *       loggedIn: boolean,
-   *       uid: string
-   *     }
-   *   }
-   * }
-   */
   @Roles('ROLE_MEMBER')
   @UseGuards(RolesGuard)
-  @Get('/reply/:boardNo')
+  @Get('/reply/:id')
   @HttpCode(200)
   @ApiBearerCookie()
   @ApiOperation({ summary: '게시글 답변 작성을 위한 원본글 데이터 조회' })
   @ApiParam({
-    name: 'boardNo',
+    name: 'id',
     required: true,
     description: '게시글 번호',
-    type: Number
+    type: Number,
   })
   @ApiOkResponse({
-    description: '정상 조회',
-    schema: {
-      $ref: getSchemaPath(ReplyDataResponseDTO)
-    }
+    description: '정상 조회'
   })
   @ApiAuthExceptionResponse()
   @ApiNotFoundResponse({
     description: '데이터 없음',
     example: {
       statusCode: ResponseStatusConstants.NOT_FOUND.CODE,
-      message: ResponseStatusConstants.NOT_FOUND.MESSAGE
-    }
+      message: ResponseStatusConstants.NOT_FOUND.MESSAGE,
+    },
   })
   async getReplyData(
-    @Param('boardNo', ParseIntPipe) boardNo: number,
-    @Req() req: Request
-  ): Promise<InstanceType<typeof ReplyDataResponseDTO>> {
-    const replyData: BoardReplyDataDTO = await this.boardService.getReplyDataService(boardNo);
-    const userStatus: UserStatusDTO = UserStatusDTOMapper.createUserStatusByReq(req);
-
-    return new ReplyDataResponseDTO(replyData, userStatus);
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<void> {
+      await this.boardService.getReplyDataService(id);
   }
 
-  /**
-   *
-   * @param replyDTO {
-   *   boardTitle: string,
-   *   boardContent: string,
-   *   boardGroupNo: number,
-   *   boardUpperNo: string,
-   *   boardIndent: number
-   * } body
-   * @param req {
-   *   user?: {
-   *     userId: string,
-   *     roles: string[]
-   *   }
-   * }
-   *
-   * @returns {
-   *   status: 201,
-   *   data: {
-   *     boardNo: number
-   *   }
-   * }
-   */
   @Roles('ROLE_MEMBER')
   @UseGuards(RolesGuard)
-  @Post('/reply')
+  @Post('/reply/:targetId')
   @HttpCode(201)
   @ApiBearerCookie()
   @ApiOperation({ summary: '게시글 답변 작성' })
-  @ApiBody({ type: PostReplyDTO })
-  @CustomApiCreatedResponse(
-    '답변 작성 완료',
-    {
-      boardNo: 1
-    }
-  )
+  @ApiParam({
+    name: 'id',
+    required: true,
+    description: '원본 게시글 번호',
+    type: Number,
+  })
+  @ApiBody({ type: PostReplyRequest })
+  @ApiPrimitiveResponse('number', 201)
   @ApiAuthExceptionResponse()
   @ApiNotFoundResponse({
     description: '상위 데이터 없음',
     example: {
       statusCode: ResponseStatusConstants.NOT_FOUND.CODE,
-      message: ResponseStatusConstants.NOT_FOUND.MESSAGE
-    }
+      message: ResponseStatusConstants.NOT_FOUND.MESSAGE,
+    },
   })
   @ApiBadRequestResponse({
     description: '요청 데이터 오류',
     content: {
       'application/json': {
-        examples: PostBoardReplyBadRequestExamples
-      }
-    }
+        examples: PostBoardReplyBadRequestExamples,
+      },
+    },
   })
-  async postReply(@Body() replyDTO: PostReplyDTO, @Req() req: Request): Promise<{ boardNo: number }> {
-    const userId: string = getAuthUserId(req);
+  async postReply(
+    @Param('targetId', ParseIntPipe) targetId: number,
+    @Body() replyDTO: PostReplyRequest,
+    @Req() req: Request,
+  ): Promise<number> {
+    const userId: number = getAuthId(req);
 
-    return await this.boardService.postBoardReplyService(replyDTO, userId);
+    return await this.boardService.postBoardReplyService(replyDTO, targetId, userId);
   }
 }

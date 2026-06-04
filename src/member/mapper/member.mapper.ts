@@ -1,7 +1,7 @@
 import { Member } from "#member/entities/member.entity";
 import { uuidv4 } from 'uuidv7';
 import bcrypt from 'bcrypt';
-import { JoinDTO } from "#member/dtos/in/join.dto";
+import { JoinRequest } from "#member/dtos/in/join.request.dto";
 
 export class MemberMapper {
 	static async toEntityByOAuth({
@@ -17,8 +17,8 @@ export class MemberMapper {
 	}) {
 		const member = new Member();
 		member.userId = userId;
-		member.userPw = await bcrypt.hash(uuidv4().replaceAll('-', ''), 10);
-		member.userName = userName;
+		member.password = await this.encodePassword(uuidv4().replaceAll('-', ''));
+		member.username = userName;
 		member.email = email;
 		member.provider = provider;
 
@@ -26,19 +26,24 @@ export class MemberMapper {
 	}
 
 	static async toEntityByJoinDTO(
-    joinDTO: JoinDTO,
+    joinDTO: JoinRequest,
     profileThumbnail: { imageName: string, originName: string } | undefined
   ) {
 		const member = new Member();
 
 		member.userId = joinDTO.userId;
-		member.userPw = await bcrypt.hash(joinDTO.userPw, 10);
-		member.userName = joinDTO.userName;
-		member.nickName = joinDTO.nickName || null;
+		member.password = await this.encodePassword(joinDTO.password);
+		member.username = joinDTO.userName;
+		member.nickname = joinDTO.nickname || null;
 		member.email = joinDTO.email;
 		member.provider = 'local';
-		member.profileThumbnail = profileThumbnail ? `profile/${profileThumbnail.imageName}` : null;
+		member.profile = profileThumbnail ? profileThumbnail.imageName : null;
 
 		return member;
 	}
+
+
+  private static async encodePassword(password: string): Promise<string> {
+    return await bcrypt.hash(password, 10);
+  }
 }

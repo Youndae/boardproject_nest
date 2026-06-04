@@ -1,6 +1,7 @@
 import { DataSource, Repository } from "typeorm";
 import { Auth } from "#member/entities/auth.entity";
 import { Injectable } from '@nestjs/common';
+import { MemberAuthInfo } from '#common/dtos/business/member-auth-info.dto';
 
 @Injectable()
 export class AuthRepository extends Repository<Auth> {
@@ -8,12 +9,22 @@ export class AuthRepository extends Repository<Auth> {
     super(Auth, dataSource.manager);
   }
 
-  async getMemberAuths(userId: string): Promise<string[]> {
-    const result = await this.createQueryBuilder('auth')
-      .select('auth.auth AS auth')
-      .where('auth.userId = :userId', { userId })
-      .getRawMany();
+  async getMemberAuthInfo(userId: string): Promise<MemberAuthInfo | undefined> {
+    const results = await this.createQueryBuilder('auth')
+      .innerJoin('auth.member', 'member')
+      .select([
+        'member.id',
+        'auth.auth'
+      ])
+      .where('member.userId = :userId', { userId })
+      .getMany();
 
-    return result.map(row => row.auth);
+    if(!results || results.length === 0)
+      return undefined;
+
+    return new MemberAuthInfo(
+      results[0].member.id,
+      results.map(r => r.auth)
+    );
   }
 }

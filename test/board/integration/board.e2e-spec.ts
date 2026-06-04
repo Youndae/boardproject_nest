@@ -17,8 +17,16 @@ import { Auth } from '#member/entities/auth.entity';
 import { Board } from '#board/entities/board.entity';
 import request from 'supertest';
 import { ResponseStatusConstants } from '#common/constants/response-status.constants';
-import { PostBoardDto } from '#board/dtos/in/post-board.dto';
-import { keywordLengthMessage } from '#common/constants/common-validate-message.constans';
+import { keywordLengthMessage } from '#common/constants/common-validate-message.constants';
+import { PAGE_AMOUNT } from '#common/constants/common-page-amount.constants';
+import { ListResponse } from '#common/dtos/out/list.response.dto';
+import { BoardListResponse } from '#board/dtos/out/board-list.response.dto';
+import { getTotalPages } from '../../utils/pagination.utils';
+import { TransformInterceptor } from '#common/interceptor/transform.interceptor';
+import { Reflector } from '@nestjs/core';
+import { ApiResponse } from '#common/dtos/out/api.response.dto';
+import { BoardDetailResponse } from '#board/dtos/out/board-detail.response.dto';
+import { BoardPatchDetailResponse } from '#board/dtos/out/board-patch-detail.response.dto';
 
 describe('BoardController E2E Test', () => {
   let app: INestApplication;
@@ -41,7 +49,7 @@ describe('BoardController E2E Test', () => {
 
   let testBoard: Board;
   const boardListCount: number = 33;
-  const boardAmount: number = 20;
+  const boardAmount: number = PAGE_AMOUNT.BOARD;
   const anonymousId = 'Anonymous';
 
 
@@ -72,39 +80,45 @@ describe('BoardController E2E Test', () => {
         transform: true,
       })
     )
+    const reflector = app.get(Reflector);
+    app.useGlobalInterceptors(new TransformInterceptor(reflector));
 
     await app.init();
 
     firstMember.userId = 'tester';
-    firstMember.userPw = '1234';
-    firstMember.userName = 'testerName';
-    firstMember.nickName = 'testerNickname';
+    firstMember.password = '1234';
+    firstMember.username = 'testerName';
+    firstMember.nickname = 'testerNickname';
     firstMember.email = 'tester@tester.com';
-    firstMember.profileThumbnail = 'testProfileThumbnail.png';
+    firstMember.profile = 'testProfileThumbnail.png';
     firstMember.provider = 'local';
 
     secondMember.userId = 'tester2';
-    secondMember.userPw = '1234';
-    secondMember.userName = 'testerName2';
-    secondMember.nickName = 'testerNickname2';
+    secondMember.password = '1234';
+    secondMember.username = 'testerName2';
+    secondMember.nickname = 'testerNickname2';
     secondMember.email = 'tester2@tester.com';
-    secondMember.profileThumbnail = 'testProfileThumbnail2.png';
+    secondMember.profile = 'testProfileThumbnail2.png';
     secondMember.provider = 'local';
 
     const saveMembers: Member[] = [firstMember, secondMember];
+    const savedMembers: Member[] = await memberRepository.save(saveMembers);
+
+    firstMember.id = savedMembers[0].id;
+    secondMember.id = savedMembers[1].id;
+
     const memberRole: string = 'ROLE_MEMBER';
     const saveAuths: Auth[] = [
       authRepository.create({
-        userId: firstMember.userId,
+        userId: firstMember.id,
         auth: memberRole
       }),
         authRepository.create({
-        userId: secondMember.userId,
+        userId: secondMember.id,
         auth: memberRole
       })
     ];
 
-    await memberRepository.save(saveMembers);
     await authRepository.save(saveAuths);
   });
 
@@ -116,12 +130,12 @@ describe('BoardController E2E Test', () => {
     for(let i = 0; i < boardListCount - 3; i++) {
       boardArr.push(
         boardRepository.create({
-          userId: firstMember.userId,
-          boardTitle: `testTitle${i}`,
-          boardContent: `testContent${i}`,
-          boardGroupNo: i,
-          boardUpperNo: `${i}`,
-          boardIndent: 1,
+          userId: firstMember.id,
+          title: `testTitle${i}`,
+          content: `testContent${i}`,
+          groupNo: i,
+          upperNo: `${i}`,
+          indent: 1,
         })
       );
     }
@@ -129,47 +143,47 @@ describe('BoardController E2E Test', () => {
     const saveBoard: Board[] = await boardRepository.save(boardArr);
 
     saveBoard.forEach(entity => {
-      entity.boardGroupNo = entity.boardNo;
-      entity.boardUpperNo = `${entity.boardNo}`;
+      entity.groupNo = entity.id;
+      entity.upperNo = `${entity.id}`;
     })
 
-    let replyNoStart = saveBoard[saveBoard.length - 1].boardNo;
+    let replyNoStart = saveBoard[saveBoard.length - 1].id;
     const replyGroupNo = replyNoStart - 1;
     testBoard = saveBoard[saveBoard.length - 1];
 
     saveBoard.push(
       boardRepository.create({
-        boardNo: ++replyNoStart,
-        userId: firstMember.userId,
-        boardTitle: `testTitle28Reply1`,
-        boardContent: `testContent28Reply1`,
-        boardGroupNo: replyGroupNo,
-        boardUpperNo: `${replyGroupNo},${replyNoStart}`,
-        boardIndent: 2,
+        id: ++replyNoStart,
+        userId: firstMember.id,
+        title: `testTitle28Reply1`,
+        content: `testContent28Reply1`,
+        groupNo: replyGroupNo,
+        upperNo: `${replyGroupNo},${replyNoStart}`,
+        indent: 2,
       })
     )
 
     saveBoard.push(
       boardRepository.create({
-        boardNo: ++replyNoStart,
-        userId: firstMember.userId,
-        boardTitle: `testTitle28Reply2`,
-        boardContent: `testContent28Reply2`,
-        boardGroupNo: replyGroupNo,
-        boardUpperNo: `${replyGroupNo},${replyNoStart}`,
-        boardIndent: 2,
+        id: ++replyNoStart,
+        userId: firstMember.id,
+        title: `testTitle28Reply2`,
+        content: `testContent28Reply2`,
+        groupNo: replyGroupNo,
+        upperNo: `${replyGroupNo},${replyNoStart}`,
+        indent: 2,
       })
     )
 
     saveBoard.push(
       boardRepository.create({
-        boardNo: ++replyNoStart,
-        userId: firstMember.userId,
-        boardTitle: `testTitle28Reply3`,
-        boardContent: `testContent28Reply3`,
-        boardGroupNo: replyGroupNo,
-        boardUpperNo: `${replyGroupNo},${replyNoStart - 2},${replyNoStart}`,
-        boardIndent: 3,
+        id: ++replyNoStart,
+        userId: firstMember.id,
+        title: `testTitle28Reply3`,
+        content: `testContent28Reply3`,
+        groupNo: replyGroupNo,
+        upperNo: `${replyGroupNo},${replyNoStart - 2},${replyNoStart}`,
+        indent: 3,
       })
     );
 
@@ -192,19 +206,21 @@ describe('BoardController E2E Test', () => {
   })
 
   describe('GET /', () => {
+    const totalPageFixture: number = getTotalPages(boardListCount, boardAmount);
     it('정상 조회. 검색어 없음', async () => {
       const response = await request(app.getHttpServer())
         .get(`${baseUrl}/`)
         .expect(200);
 
-      const body = response.body;
+      const body: ApiResponse<ListResponse<BoardListResponse>> = response.body
+      const content: ListResponse<BoardListResponse> | null = body.content;
 
-      expect(body).toBeDefined();
-      expect(body.content.length).toBe(boardAmount);
-      expect(body.empty).toBeFalsy();
-      expect(body.totalElements).toBe(boardListCount);
-      expect(body.userStatus.loggedIn).toBeFalsy();
-      expect(body.userStatus.uid).toBe(anonymousId);
+      expect(body.code).toBe(200);
+      expect(content).not.toBeNull();
+      expect(content?.items.length).toBe(boardAmount);
+      expect(content?.isEmpty).toBeFalsy();
+      expect(content?.totalPages).toBe(totalPageFixture);
+      expect(content?.currentPage).toBe(1);
     });
 
     it('정상 조회. 검색어 없음. 로그인 시', async () => {
@@ -215,14 +231,15 @@ describe('BoardController E2E Test', () => {
         .set('Cookie', tokenCookies)
         .expect(200);
 
-      const body = response.body;
+      const body: ApiResponse<ListResponse<BoardListResponse>> = response.body
+      const content: ListResponse<BoardListResponse> | null = body.content;
 
-      expect(body).toBeDefined();
-      expect(body.content.length).toBe(boardAmount);
-      expect(body.empty).toBeFalsy();
-      expect(body.totalElements).toBe(boardListCount);
-      expect(body.userStatus.loggedIn).toBeTruthy();
-      expect(body.userStatus.uid).toBe(firstMember.userId);
+      expect(body.code).toBe(200);
+      expect(content).not.toBeNull();
+      expect(content?.items.length).toBe(boardAmount);
+      expect(content?.isEmpty).toBeFalsy();
+      expect(content?.totalPages).toBe(totalPageFixture);
+      expect(content?.currentPage).toBe(1);
     });
 
     it('검색어가 1글자인 경우', async () => {
@@ -252,12 +269,15 @@ describe('BoardController E2E Test', () => {
         .query({ 'searchType': 't' })
         .expect(200);
 
-      const body = response.body;
+      const body: ApiResponse<ListResponse<BoardListResponse>> = response.body
+      const content: ListResponse<BoardListResponse> | null = body.content;
 
-      expect(body.totalElements).toBe(1);
-      expect(body.empty).toBeFalsy();
-      expect(body.content.length).toBe(1);
-      expect(body.content[0].boardTitle).toBe('testTitle11');
+      expect(body.code).toBe(200);
+      expect(content).not.toBeNull();
+      expect(content?.totalPages).toBe(1);
+      expect(content?.isEmpty).toBeFalsy();
+      expect(content?.items.length).toBe(1);
+      expect(content?.items[0].title).toBe('testTitle11');
     });
 
     it('정상 조회. 내용 기반 검색', async () => {
@@ -267,12 +287,15 @@ describe('BoardController E2E Test', () => {
         .query({ 'searchType': 'c' })
         .expect(200);
 
-      const body = response.body;
+      const body: ApiResponse<ListResponse<BoardListResponse>> = response.body
+      const content: ListResponse<BoardListResponse> | null = body.content;
 
-      expect(body.totalElements).toBe(1);
-      expect(body.empty).toBeFalsy();
-      expect(body.content.length).toBe(1);
-      expect(body.content[0].boardTitle).toBe('testTitle11');
+      expect(body.code).toBe(200);
+      expect(content).not.toBeNull();
+      expect(content?.totalPages).toBe(1);
+      expect(content?.isEmpty).toBeFalsy();
+      expect(content?.items.length).toBe(1);
+      expect(content?.items[0].title).toBe('testTitle11');
     });
 
     it('정상 조회. 제목 or 내용 기반 검색', async () => {
@@ -282,12 +305,15 @@ describe('BoardController E2E Test', () => {
         .query({ 'searchType': 'tc' })
         .expect(200);
 
-      const body = response.body;
+      const body: ApiResponse<ListResponse<BoardListResponse>> = response.body
+      const content: ListResponse<BoardListResponse> | null = body.content;
 
-      expect(body.totalElements).toBe(1);
-      expect(body.empty).toBeFalsy();
-      expect(body.content.length).toBe(1);
-      expect(body.content[0].boardTitle).toBe('testTitle11');
+      expect(body.code).toBe(200);
+      expect(content).not.toBeNull();
+      expect(content?.totalPages).toBe(1);
+      expect(content?.isEmpty).toBeFalsy();
+      expect(content?.items.length).toBe(1);
+      expect(content?.items[0].title).toBe('testTitle11');
     });
 
     it('정상 조회. 작성자 기반 검색', async () => {
@@ -297,26 +323,31 @@ describe('BoardController E2E Test', () => {
         .query({ 'searchType': 'u' })
         .expect(200);
 
-      const body = response.body;
+      const body: ApiResponse<ListResponse<BoardListResponse>> = response.body
+      const content: ListResponse<BoardListResponse> | null = body.content;
 
-      expect(body).toBeDefined();
-      expect(body.content.length).toBe(boardAmount);
-      expect(body.empty).toBeFalsy();
-      expect(body.totalElements).toBe(boardListCount);
+      expect(body.code).toBe(200);
+      expect(content).not.toBeNull();
+      expect(content?.items.length).toBe(boardAmount);
+      expect(content?.isEmpty).toBeFalsy();
+      expect(content?.totalPages).toBe(totalPageFixture);
     });
 
     it('정상 조회. 2페이지 조회', async () => {
       const response = await request(app.getHttpServer())
         .get(`${baseUrl}`)
-        .query({ 'pageNum': 2 })
+        .query({ 'page': 2 })
         .expect(200);
 
-      const body = response.body;
+      const body: ApiResponse<ListResponse<BoardListResponse>> = response.body
+      const content: ListResponse<BoardListResponse> | null = body.content;
 
-      expect(body).toBeDefined();
-      expect(body.content.length).toBe(boardListCount - boardAmount);
-      expect(body.empty).toBeFalsy();
-      expect(body.totalElements).toBe(boardListCount);
+      expect(body.code).toBe(200);
+      expect(content).not.toBeNull();
+      expect(content?.items.length).toBe(boardListCount - boardAmount);
+      expect(content?.isEmpty).toBeFalsy();
+      expect(content?.totalPages).toBe(totalPageFixture);
+      expect(content?.currentPage).toBe(2);
     });
 
     it('데이터가 없는 경우', async () => {
@@ -326,29 +357,33 @@ describe('BoardController E2E Test', () => {
         .get(`${baseUrl}`)
         .expect(200);
 
-      const body = response.body;
+      const body: ApiResponse<ListResponse<BoardListResponse>> = response.body
+      const content: ListResponse<BoardListResponse> | null = body.content;
 
-      expect(body).toBeDefined();
-      expect(body.content.length).toBe(0);
-      expect(body.empty).toBeTruthy();
-      expect(body.totalElements).toBe(0);
+      expect(body.code).toBe(200);
+      expect(content).not.toBeNull();
+      expect(content?.items.length).toBe(0);
+      expect(content?.isEmpty).toBeTruthy();
+      expect(content?.totalPages).toBe(0);
     })
   });
 
-  describe('GET /:boardNo', () => {
+  describe('GET /:id', () => {
     it('정상 조회', async () => {
       const response = await request(app.getHttpServer())
-        .get(`${baseUrl}/${testBoard.boardNo}`)
+        .get(`${baseUrl}/${testBoard.id}`)
         .expect(200);
 
-      const body = response.body;
+      const body: ApiResponse<BoardDetailResponse> = response.body;
+      const content: BoardDetailResponse | null = body.content;
 
-      expect(body).toBeDefined();
-      expect(body.content.boardNo).toBe(testBoard.boardNo);
-      expect(body.content.boardTitle).toBe(testBoard.boardTitle);
-      expect(body.content.boardContent).toBe(testBoard.boardContent);
-      expect(body.content.userId).toBe(testBoard.userId);
-      expect(body.content.boardDate).toBeDefined();
+      expect(body.code).toBe(200);
+      expect(body.content).not.toBeNull();
+      expect(content?.title).toBe(testBoard.title);
+      expect(content?.content).toBe(testBoard.content);
+      expect(content?.writer).toBe(firstMember.nickname);
+      expect(content?.writerId).toBe(firstMember.userId);
+      expect(content?.createdAt).toBeDefined();
     });
 
     it('게시글 번호가 문자열인 경우', async () => {
@@ -362,9 +397,9 @@ describe('BoardController E2E Test', () => {
     it('데이터가 없는 경우', async () => {
       const response = await request(app.getHttpServer())
         .get(`${baseUrl}/0`)
-        .expect(404);
+        .expect(400);
 
-      expect(response.body.message).toBe(ResponseStatusConstants.NOT_FOUND.MESSAGE);
+      expect(response.body.message).toBe(ResponseStatusConstants.BAD_REQUEST.MESSAGE);
     });
   });
 
@@ -378,33 +413,33 @@ describe('BoardController E2E Test', () => {
         .post(`${baseUrl}`)
         .set('Cookie', tokenCookies)
         .send({
-          boardTitle: postTitle,
-          boardContent: postContent,
+          title: postTitle,
+          content: postContent,
         })
         .expect(201);
 
-      expect(response.body).toBeDefined();
-      expect(response.body.boardNo).toBeDefined();
+      expect(response.body.content).not.toBeNull();
+      expect(response.body.content).toBeDefined();
 
-      const saveBoardNo: number = response.body.boardNo;
+      const saveBoardId: number = response.body.content;
 
-      const saveBoard: Board | null = await boardRepository.findOne({ where: { boardNo: saveBoardNo } });
+      const saveBoard: Board | null = await boardRepository.findOne({ where: { id: saveBoardId } });
 
       expect(saveBoard).not.toBeNull();
-      expect(saveBoard?.boardTitle).toBe(postTitle);
-      expect(saveBoard?.boardContent).toBe(postContent);
-      expect(saveBoard?.userId).toBe(firstMember.userId);
-      expect(saveBoard?.boardGroupNo).toBe(saveBoardNo);
-      expect(saveBoard?.boardUpperNo).toBe(`${saveBoardNo}`);
-      expect(saveBoard?.boardIndent).toBe(1);
+      expect(saveBoard?.title).toBe(postTitle);
+      expect(saveBoard?.content).toBe(postContent);
+      expect(saveBoard?.userId).toBe(firstMember.id);
+      expect(saveBoard?.groupNo).toBe(saveBoardId);
+      expect(saveBoard?.upperNo).toBe(`${saveBoardId}`);
+      expect(saveBoard?.indent).toBe(0);
     });
 
     it('비회원 접근', async () => {
       const response = await request(app.getHttpServer())
         .post(`${baseUrl}`)
         .send({
-          boardTitle: postTitle,
-          boardContent: postContent,
+          title: postTitle,
+          content: postContent,
         })
         .expect(403);
 
@@ -418,8 +453,8 @@ describe('BoardController E2E Test', () => {
         .post(`${baseUrl}`)
         .set('Cookie', tokenCookies)
         .send({
-          boardTitle: 't',
-          boardContent: postContent,
+          title: 't',
+          content: postContent,
         })
         .expect(400);
 
@@ -433,7 +468,7 @@ describe('BoardController E2E Test', () => {
         .post(`${baseUrl}`)
         .set('Cookie', tokenCookies)
         .send({
-          boardContent: postContent,
+          content: postContent,
         })
         .expect(400);
 
@@ -447,8 +482,8 @@ describe('BoardController E2E Test', () => {
         .post(`${baseUrl}`)
         .set('Cookie', tokenCookies)
         .send({
-          boardTitle: '',
-          boardContent: postContent,
+          title: '',
+          content: postContent,
         })
         .expect(400);
 
@@ -462,7 +497,7 @@ describe('BoardController E2E Test', () => {
         .post(`${baseUrl}`)
         .set('Cookie', tokenCookies)
         .send({
-          boardTitle: postTitle,
+          title: postTitle,
         })
         .expect(400);
 
@@ -476,8 +511,8 @@ describe('BoardController E2E Test', () => {
         .post(`${baseUrl}`)
         .set('Cookie', tokenCookies)
         .send({
-          boardTitle: postTitle,
-          boardContent: ''
+          title: postTitle,
+          content: ''
         })
         .expect(400);
 
@@ -485,27 +520,27 @@ describe('BoardController E2E Test', () => {
     });
   });
 
-  describe('GET /patch-detail/:boardNo', () => {
+  describe('GET /patch-detail/:id', () => {
     it('정상 조회', async () => {
       const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(firstMember.userId);
 
       const response = await request(app.getHttpServer())
-        .get(`${baseUrl}/patch-detail/${testBoard.boardNo}`)
+        .get(`${baseUrl}/patch-detail/${testBoard.id}`)
         .set('Cookie', tokenCookies)
         .expect(200);
 
-      const body = response.body;
+      const body: ApiResponse<BoardPatchDetailResponse> = response.body;
+      const content: BoardPatchDetailResponse | null = body.content;
 
-      expect(body).toBeDefined();
-      expect(body.content.boardTitle).toBe(testBoard.boardTitle);
-      expect(body.content.boardContent).toBe(testBoard.boardContent);
-      expect(body.userStatus.loggedIn).toBeTruthy();
-      expect(body.userStatus.uid).toBe(firstMember.userId);
+      expect(body.code).toBe(200);
+      expect(content).not.toBeNull();
+      expect(content?.title).toBe(testBoard.title);
+      expect(content?.content).toBe(testBoard.content);
     });
 
     it('비회원 접근', async () => {
       const response = await request(app.getHttpServer())
-        .get(`${baseUrl}/patch-detail/${testBoard.boardNo}`)
+        .get(`${baseUrl}/patch-detail/${testBoard.id}`)
         .expect(403);
 
       expect(response.body.message).toBe(ResponseStatusConstants.FORBIDDEN.MESSAGE);
@@ -515,7 +550,7 @@ describe('BoardController E2E Test', () => {
       const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(secondMember.userId);
 
       const response = await request(app.getHttpServer())
-        .get(`${baseUrl}/patch-detail/${testBoard.boardNo}`)
+        .get(`${baseUrl}/patch-detail/${testBoard.id}`)
         .set('Cookie', tokenCookies)
         .expect(403);
 
@@ -528,47 +563,52 @@ describe('BoardController E2E Test', () => {
       const response = await request(app.getHttpServer())
         .get(`${baseUrl}/patch-detail/0`)
         .set('Cookie', tokenCookies)
-        .expect(404);
+        .expect(400);
 
-      expect(response.body.message).toBe(ResponseStatusConstants.NOT_FOUND.MESSAGE);
+      expect(response.body.message).toBe(ResponseStatusConstants.BAD_REQUEST.MESSAGE);
     });
   });
 
-  describe('PATCH /:boardNo', () => {
+  describe('PATCH /:id', () => {
     const patchTitle = 'testPatchTitle';
     const patchContent = 'testPatchContent';
     it('정상 처리', async () => {
       const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(firstMember.userId);
 
       const response = await request(app.getHttpServer())
-        .patch(`${baseUrl}/${testBoard.boardNo}`)
+        .patch(`${baseUrl}/${testBoard.id}`)
         .set('Cookie', tokenCookies)
         .send({
-          boardTitle: patchTitle,
-          boardContent: patchContent
+          title: patchTitle,
+          content: patchContent
         })
         .expect(200);
 
-      const body = response.body;
+      const body: ApiResponse<number> = response.body;
 
       expect(body).toBeDefined();
-      expect(body.boardNo).toBeDefined();
+      expect(body.content).not.toBeNull();
 
-      const patchNo: number = body.boardNo;
+      const patchNo: number = body.content!;
 
-      const patchBoard: Board | null = await boardRepository.findOne({ where : { boardNo: patchNo } });
+      const patchBoard: Board | null = await boardRepository.findOne({ where : { id: patchNo } });
 
       expect(patchBoard).not.toBeNull();
-      expect(patchBoard?.boardTitle).toBe(patchTitle);
-      expect(patchBoard?.boardContent).toBe(patchContent);
+      expect(patchBoard?.title).toBe(patchTitle);
+      expect(patchBoard?.content).toBe(patchContent);
+      expect(patchBoard?.userId).toBe(testBoard.userId);
+      expect(patchBoard?.createdAt).toStrictEqual(testBoard.createdAt);
+      expect(patchBoard?.groupNo).toBe(testBoard.groupNo);
+      expect(patchBoard?.upperNo).toBe(testBoard.upperNo);
+      expect(patchBoard?.indent).toBe(testBoard.indent);
     });
 
     it('비회원 접근', async () => {
       const response = await request(app.getHttpServer())
-        .patch(`${baseUrl}/${testBoard.boardNo}`)
+        .patch(`${baseUrl}/${testBoard.id}`)
         .send({
-          boardTitle: patchTitle,
-          boardContent: patchContent
+          title: patchTitle,
+          content: patchContent
         })
         .expect(403);
 
@@ -579,11 +619,11 @@ describe('BoardController E2E Test', () => {
       const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(secondMember.userId);
 
       const response = await request(app.getHttpServer())
-        .patch(`${baseUrl}/${testBoard.boardNo}`)
+        .patch(`${baseUrl}/${testBoard.id}`)
         .set('Cookie', tokenCookies)
         .send({
-          boardTitle: patchTitle,
-          boardContent: patchContent
+          title: patchTitle,
+          content: patchContent
         })
         .expect(403);
 
@@ -594,10 +634,10 @@ describe('BoardController E2E Test', () => {
       const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(firstMember.userId);
 
       const response = await request(app.getHttpServer())
-        .patch(`${baseUrl}/${testBoard.boardNo}`)
+        .patch(`${baseUrl}/${testBoard.id}`)
         .set('Cookie', tokenCookies)
         .send({
-          boardContent: patchContent,
+          content: patchContent,
         })
         .expect(400);
 
@@ -608,11 +648,11 @@ describe('BoardController E2E Test', () => {
       const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(firstMember.userId);
 
       const response = await request(app.getHttpServer())
-        .patch(`${baseUrl}/${testBoard.boardNo}`)
+        .patch(`${baseUrl}/${testBoard.id}`)
         .set('Cookie', tokenCookies)
         .send({
-          boardTitle: '',
-          boardContent: patchContent,
+          title: '',
+          content: patchContent,
         })
         .expect(400);
 
@@ -623,10 +663,10 @@ describe('BoardController E2E Test', () => {
       const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(firstMember.userId);
 
       const response = await request(app.getHttpServer())
-        .patch(`${baseUrl}/${testBoard.boardNo}`)
+        .patch(`${baseUrl}/${testBoard.id}`)
         .set('Cookie', tokenCookies)
         .send({
-          boardTitle: patchTitle,
+          title: patchTitle,
         })
         .expect(400);
 
@@ -637,11 +677,11 @@ describe('BoardController E2E Test', () => {
       const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(firstMember.userId);
 
       const response = await request(app.getHttpServer())
-        .patch(`${baseUrl}/${testBoard.boardNo}`)
+        .patch(`${baseUrl}/${testBoard.id}`)
         .set('Cookie', tokenCookies)
         .send({
-          boardTitle: patchTitle,
-          boardContent: ''
+          title: patchTitle,
+          content: ''
         })
         .expect(400);
 
@@ -649,16 +689,16 @@ describe('BoardController E2E Test', () => {
     });
   });
 
-  describe('DELETE /:boardNo', () => {
+  describe('DELETE /:id', () => {
     it('정상 처리', async () => {
       const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(firstMember.userId);
 
       await request(app.getHttpServer())
-        .delete(`${baseUrl}/${testBoard.boardNo}`)
+        .delete(`${baseUrl}/${testBoard.id}`)
         .set('Cookie', tokenCookies)
         .expect(204);
 
-      const deleteBoard: Board | null = await boardRepository.findOne({ where: { boardNo: testBoard.boardNo } });
+      const deleteBoard: Board | null = await boardRepository.findOne({ where: { id: testBoard.id } });
 
       expect(deleteBoard).toBeNull();
     });
@@ -669,52 +709,43 @@ describe('BoardController E2E Test', () => {
       const response = await request(app.getHttpServer())
         .delete(`${baseUrl}/0`)
         .set('Cookie', tokenCookies)
-        .expect(404);
+        .expect(400);
 
-      expect(response.body.message).toBe(ResponseStatusConstants.NOT_FOUND.MESSAGE);
+      expect(response.body.message).toBe(ResponseStatusConstants.BAD_REQUEST.MESSAGE);
     })
 
     it('작성자가 아닌 경우', async () => {
       const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(secondMember.userId);
 
       const response = await request(app.getHttpServer())
-        .delete(`${baseUrl}/${testBoard.boardNo}`)
+        .delete(`${baseUrl}/${testBoard.id}`)
         .set('Cookie', tokenCookies)
         .expect(403);
 
       expect(response.body.message).toBe(ResponseStatusConstants.ACCESS_DENIED.MESSAGE);
 
-      const deleteBoard: Board | null = await boardRepository.findOne({ where: { boardNo: testBoard.boardNo } });
+      const deleteBoard: Board | null = await boardRepository.findOne({ where: { id: testBoard.id } });
 
       expect(deleteBoard).not.toBeNull();
     });
 
     it('비회원 접근', async () => {
       const response = await request(app.getHttpServer())
-        .delete(`${baseUrl}/${testBoard.boardNo}`)
+        .delete(`${baseUrl}/${testBoard.id}`)
         .expect(403);
 
       expect(response.body.message).toBe(ResponseStatusConstants.FORBIDDEN.MESSAGE);
     });
   });
 
-  describe('GET /reply/:boardNo', () => {
+  describe('GET /reply/:id', () => {
     it('정상 조회', async () => {
       const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(firstMember.userId);
 
-      const response = await request(app.getHttpServer())
-        .get(`${baseUrl}/reply/${testBoard.boardNo}`)
+      await request(app.getHttpServer())
+        .get(`${baseUrl}/reply/${testBoard.id}`)
         .set('Cookie', tokenCookies)
         .expect(200);
-
-      const body = response.body;
-
-      expect(body).toBeDefined();
-      expect(body.content.boardGroupNo).toBe(testBoard.boardGroupNo);
-      expect(body.content.boardUpperNo).toBe(testBoard.boardUpperNo);
-      expect(body.content.boardIndent).toBe(testBoard.boardIndent);
-      expect(body.userStatus.loggedIn).toBeTruthy();
-      expect(body.userStatus.uid).toBe(firstMember.userId)
     });
 
     it('데이터가 없는 경우', async () => {
@@ -723,65 +754,59 @@ describe('BoardController E2E Test', () => {
       const response = await request(app.getHttpServer())
         .get(`${baseUrl}/reply/0`)
         .set('Cookie', tokenCookies)
-        .expect(404);
+        .expect(400);
 
-      expect(response.body.message).toBe(ResponseStatusConstants.NOT_FOUND.MESSAGE);
+      expect(response.body.message).toBe(ResponseStatusConstants.BAD_REQUEST.MESSAGE);
     });
 
     it('비회원 접근', async () => {
       const response = await request(app.getHttpServer())
-        .get(`${baseUrl}/reply/${testBoard.boardNo}`)
+        .get(`${baseUrl}/reply/${testBoard.id}`)
         .expect(403);
 
       expect(response.body.message).toBe(ResponseStatusConstants.FORBIDDEN.MESSAGE);
     });
   });
 
-  describe('POST /reply', () => {
+  describe('POST /reply/:targetId', () => {
     const replyTitle: string = 'testReplyTitle';
     const replyContent: string = 'testReplyContent';
     it('정상 처리', async () => {
       const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(firstMember.userId);
 
       const response = await request(app.getHttpServer())
-        .post(`${baseUrl}/reply`)
+        .post(`${baseUrl}/reply/${testBoard.id}`)
         .set('Cookie', tokenCookies)
         .send({
-          boardTitle: replyTitle,
-          boardContent: replyContent,
-          boardGroupNo: Number(testBoard.boardGroupNo),
-          boardUpperNo: testBoard.boardUpperNo,
-          boardIndent: Number(testBoard.boardIndent)
+          title: replyTitle,
+          content: replyContent
         })
         .expect(201);
 
-      const body = response.body;
+      const body: ApiResponse<number> = response.body;
 
       expect(body).toBeDefined();
-      expect(body.boardNo).toBeDefined();
+      expect(body.content).not.toBeNull();
 
-      const saveReplyNo: number = body.boardNo;
+      const saveReplyId: number = body.content!;
 
-      const saveReply: Board | null = await boardRepository.findOne({ where: { boardNo: saveReplyNo } });
+      const saveReply: Board | null = await boardRepository.findOne({ where: { id: saveReplyId } });
 
       expect(saveReply).not.toBeNull();
-      expect(saveReply?.boardTitle).toBe(replyTitle);
-      expect(saveReply?.boardContent).toBe(replyContent);
-      expect(saveReply?.userId).toBe(firstMember.userId);
-      expect(saveReply?.boardGroupNo).toBe(testBoard.boardGroupNo);
-      expect(saveReply?.boardUpperNo).toBe(`${testBoard.boardUpperNo},${saveReplyNo}`);
-      expect(saveReply?.boardIndent).toBe(testBoard.boardIndent + 1);
+      expect(saveReply?.title).toBe(replyTitle);
+      expect(saveReply?.content).toBe(replyContent);
+      expect(saveReply?.userId).toBe(firstMember.id);
+      expect(saveReply?.groupNo).toBe(testBoard.groupNo);
+      expect(saveReply?.upperNo).toBe(`${testBoard.upperNo},${saveReplyId}`);
+      expect(saveReply?.indent).toBe(testBoard.indent + 1);
     });
 
     it('비회원 접근', async () => {
       const response = await request(app.getHttpServer())
-        .post(`${baseUrl}/reply`)
+        .post(`${baseUrl}/reply/${testBoard.id}`)
         .send({
-          boardTitle: replyTitle,
-          boardContent: replyContent,
-          boardGroupNo: Number(testBoard.boardGroupNo),
-          boardUpperNo: testBoard.boardUpperNo,
-          boardIndent: Number(testBoard.boardIndent)
+          title: replyTitle,
+          content: replyContent
         })
         .expect(403);
 
@@ -792,31 +817,25 @@ describe('BoardController E2E Test', () => {
       const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(firstMember.userId);
 
       const response = await request(app.getHttpServer())
-        .post(`${baseUrl}/reply`)
+        .post(`${baseUrl}/reply/0`)
         .set('Cookie', tokenCookies)
         .send({
-          boardTitle: replyTitle,
-          boardContent: replyContent,
-          boardGroupNo: Number(testBoard.boardGroupNo) - boardListCount,
-          boardUpperNo: testBoard.boardUpperNo,
-          boardIndent: Number(testBoard.boardIndent)
+          title: replyTitle,
+          content: replyContent
         })
-        .expect(404);
+        .expect(400);
 
-      expect(response.body.message).toBe(ResponseStatusConstants.NOT_FOUND.MESSAGE);
+      expect(response.body.message).toBe(ResponseStatusConstants.BAD_REQUEST.MESSAGE);
     });
 
     it('제목이 없는 경우', async () => {
       const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(firstMember.userId);
 
       const response = await request(app.getHttpServer())
-        .post(`${baseUrl}/reply`)
+        .post(`${baseUrl}/reply/${testBoard.id}`)
         .set('Cookie', tokenCookies)
         .send({
-          boardContent: replyContent,
-          boardGroupNo: Number(testBoard.boardGroupNo),
-          boardUpperNo: testBoard.boardUpperNo,
-          boardIndent: Number(testBoard.boardIndent)
+          content: replyContent,
         })
         .expect(400);
 
@@ -827,14 +846,11 @@ describe('BoardController E2E Test', () => {
       const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(firstMember.userId);
 
       const response = await request(app.getHttpServer())
-        .post(`${baseUrl}/reply`)
+        .post(`${baseUrl}/reply/${testBoard.id}`)
         .set('Cookie', tokenCookies)
         .send({
-          boardTitle: '',
-          boardContent: replyContent,
-          boardGroupNo: Number(testBoard.boardGroupNo),
-          boardUpperNo: testBoard.boardUpperNo,
-          boardIndent: Number(testBoard.boardIndent)
+          title: '',
+          content: replyContent,
         })
         .expect(400);
 
@@ -845,13 +861,10 @@ describe('BoardController E2E Test', () => {
       const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(firstMember.userId);
 
       const response = await request(app.getHttpServer())
-        .post(`${baseUrl}/reply`)
+        .post(`${baseUrl}/reply/${testBoard.id}`)
         .set('Cookie', tokenCookies)
         .send({
-          boardTitle: replyTitle,
-          boardGroupNo: Number(testBoard.boardGroupNo),
-          boardUpperNo: testBoard.boardUpperNo,
-          boardIndent: Number(testBoard.boardIndent)
+          title: replyTitle,
         })
         .expect(400);
 
@@ -862,177 +875,15 @@ describe('BoardController E2E Test', () => {
       const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(firstMember.userId);
 
       const response = await request(app.getHttpServer())
-        .post(`${baseUrl}/reply`)
+        .post(`${baseUrl}/reply/${testBoard.id}`)
         .set('Cookie', tokenCookies)
         .send({
-          boardTitle: replyTitle,
-          boardContent: '',
-          boardGroupNo: Number(testBoard.boardGroupNo),
-          boardUpperNo: testBoard.boardUpperNo,
-          boardIndent: Number(testBoard.boardIndent)
+          title: replyTitle,
+          content: '',
         })
         .expect(400);
 
       expect(response.body.message[0]).toBe('boardContent is not empty');
-    });
-
-    it('boardGroupNo가 없는 경우', async () => {
-      const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(firstMember.userId);
-
-      const response = await request(app.getHttpServer())
-        .post(`${baseUrl}/reply`)
-        .set('Cookie', tokenCookies)
-        .send({
-          boardTitle: replyTitle,
-          boardContent: replyContent,
-          boardUpperNo: testBoard.boardUpperNo,
-          boardIndent: Number(testBoard.boardIndent)
-        })
-        .expect(400);
-
-      expect(response.body.message[0]).toBe('boardGroupNo should not be null or undefined');
-    });
-
-    it('boardGroupNo가 정수가 아닌 경우', async () => {
-      const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(firstMember.userId);
-
-      const response = await request(app.getHttpServer())
-        .post(`${baseUrl}/reply`)
-        .set('Cookie', tokenCookies)
-        .send({
-          boardTitle: replyTitle,
-          boardContent: replyContent,
-          boardGroupNo: '1',
-          boardUpperNo: testBoard.boardUpperNo,
-          boardIndent: Number(testBoard.boardIndent)
-        })
-        .expect(400);
-
-      expect(response.body.message[0]).toBe('boardGroupNo less than 0');
-    });
-
-    it('boardGroupNo가 1보다 작은 경우', async () => {
-      const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(firstMember.userId);
-
-      const response = await request(app.getHttpServer())
-        .post(`${baseUrl}/reply`)
-        .set('Cookie', tokenCookies)
-        .send({
-          boardTitle: replyTitle,
-          boardContent: replyContent,
-          boardGroupNo: 0,
-          boardUpperNo: testBoard.boardUpperNo,
-          boardIndent: Number(testBoard.boardIndent)
-        })
-        .expect(400);
-
-      expect(response.body.message[0]).toBe('boardGroupNo less than 0');
-    });
-
-    it('boardUpperNo가 없는 경우', async () => {
-      const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(firstMember.userId);
-
-      const response = await request(app.getHttpServer())
-        .post(`${baseUrl}/reply`)
-        .set('Cookie', tokenCookies)
-        .send({
-          boardTitle: replyTitle,
-          boardContent: replyContent,
-          boardGroupNo: Number(testBoard.boardGroupNo),
-          boardIndent: Number(testBoard.boardIndent)
-        })
-        .expect(400);
-
-      expect(response.body.message[0]).toBe('boardUpperNo should not be null or undefined');
-    });
-
-    it('boardUpperNo가 blank인 경우', async () => {
-      const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(firstMember.userId);
-
-      const response = await request(app.getHttpServer())
-        .post(`${baseUrl}/reply`)
-        .set('Cookie', tokenCookies)
-        .send({
-          boardTitle: replyTitle,
-          boardContent: replyContent,
-          boardGroupNo: Number(testBoard.boardGroupNo),
-          boardUpperNo: '',
-          boardIndent: Number(testBoard.boardIndent)
-        })
-        .expect(400);
-
-      expect(response.body.message[0]).toBe('boardUpperNo is not empty');
-    });
-
-    it('boardUpperNo가 문자열이 아닌 경우', async () => {
-      const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(firstMember.userId);
-
-      const response = await request(app.getHttpServer())
-        .post(`${baseUrl}/reply`)
-        .set('Cookie', tokenCookies)
-        .send({
-          boardTitle: replyTitle,
-          boardContent: replyContent,
-          boardGroupNo: Number(testBoard.boardGroupNo),
-          boardUpperNo: Number(testBoard.boardUpperNo),
-          boardIndent: Number(testBoard.boardIndent)
-        })
-        .expect(400);
-
-      expect(response.body.message[0]).toBe('boardUpperNo must be a string');
-    });
-
-    it('boardIndent가 없는 경우', async () => {
-      const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(firstMember.userId);
-
-      const response = await request(app.getHttpServer())
-        .post(`${baseUrl}/reply`)
-        .set('Cookie', tokenCookies)
-        .send({
-          boardTitle: replyTitle,
-          boardContent: replyContent,
-          boardGroupNo: Number(testBoard.boardGroupNo),
-          boardUpperNo: testBoard.boardUpperNo,
-        })
-        .expect(400);
-
-      expect(response.body.message[0]).toBe('boardIndent should not be null or undefined');
-    });
-
-    it('boardIndent가 정수가 아닌 경우', async () => {
-      const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(firstMember.userId);
-
-      const response = await request(app.getHttpServer())
-        .post(`${baseUrl}/reply`)
-        .set('Cookie', tokenCookies)
-        .send({
-          boardTitle: replyTitle,
-          boardContent: replyContent,
-          boardGroupNo: Number(testBoard.boardGroupNo),
-          boardUpperNo: testBoard.boardUpperNo,
-          boardIndent: '1'
-        })
-        .expect(400);
-
-      expect(response.body.message[0]).toBe('boardIndent less than 0');
-    });
-
-    it('boardIndent가 1보다 작은 경우', async () => {
-      const tokenCookies: string[] = await tokenUtil.createTokenAndCookies(firstMember.userId);
-
-      const response = await request(app.getHttpServer())
-        .post(`${baseUrl}/reply`)
-        .set('Cookie', tokenCookies)
-        .send({
-          boardTitle: replyTitle,
-          boardContent: replyContent,
-          boardGroupNo: Number(testBoard.boardGroupNo),
-          boardUpperNo: testBoard.boardUpperNo,
-          boardIndent: 0
-        })
-        .expect(400);
-
-      expect(response.body.message[0]).toBe('boardIndent less than 0');
     });
   });
 })

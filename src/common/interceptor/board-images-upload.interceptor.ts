@@ -28,7 +28,7 @@ export class BoardImagesUploadInterceptor implements NestInterceptor {
 		const res = ctx.switchToHttp().getResponse();
 
 		return new Promise((resolve, reject) => {
-			this.upload.array('images', 5)(req, res, (err: any) => {
+			this.upload.array('files', 5)(req, res, (err: any) => {
 				if(err){
 					if(err instanceof MulterError){
 						if(err.code === 'LIMIT_FILE_SIZE')

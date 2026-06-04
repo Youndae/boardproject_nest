@@ -55,15 +55,16 @@ describe('imageDataRepository', () => {
     await memberRepository.deleteAll();
 
     member.userId = 'tester';
-    member.userPw = '1234';
-    member.userName = 'testerName';
-    member.nickName = 'testerNickname';
+    member.password = '1234';
+    member.username = 'testerName';
+    member.nickname = 'testerNickname';
     member.email = 'tester@tester.com';
-    member.profileThumbnail = 'localProfileName.jpg';
+    member.profile = 'localProfileName.jpg';
     member.provider = 'local';
 
     const saveMember: Member = memberRepository.create(member);
-    await memberRepository.save(saveMember);
+    const savedMember: Member = await memberRepository.save(saveMember);
+    member.id = savedMember.id;
   });
 
   beforeEach(async () => {
@@ -76,9 +77,9 @@ describe('imageDataRepository', () => {
     for(let i  = 0; i < boardListCount; i++) {
       imageBoardArr.push(
         imageBoardRepository.create({
-          userId: member.userId,
-          imageTitle: `testImageTitle${i}`,
-          imageContent: `testImageContent${i}`
+          userId: member.id,
+          title: `testImageTitle${i}`,
+          content: `testImageContent${i}`
         })
       );
     };
@@ -86,12 +87,12 @@ describe('imageDataRepository', () => {
     const saveImageBoardList: ImageBoard[] = await imageBoardRepository.save(imageBoardArr);
 
     for(const saveBoard of saveImageBoardList) {
-      for(let i = 0; i < 3; i++) {
+      for(let i = 1; i <= 3; i++) {
         imageDataArr.push(
           imageDataRepository.create({
-            imageName: `board/${saveBoard.imageTitle}'sImage${i}.jpg`,
-            imageNo: saveBoard.imageNo,
-            oldName: `${saveBoard.imageTitle}'sOriginName${i}.jpg`,
+            imageName: `board/${saveBoard.title}'sImage${i}.jpg`,
+            imageId: saveBoard.id,
+            originName: `${saveBoard.title}'sOriginName${i}.jpg`,
             imageStep: i
           })
         );
@@ -102,7 +103,7 @@ describe('imageDataRepository', () => {
 
     testBoard = saveImageBoardList[0];
     testBoardImageData = saveImageDataList
-                          .filter(e => e.imageNo === testBoard.imageNo)
+                          .filter(e => e.imageId === testBoard.id)
                           .map(dto => dto.imageName);
   })
 
@@ -117,7 +118,7 @@ describe('imageDataRepository', () => {
 
   describe('getImageNameListByImageNo', () => {
     it('정상 조회', async() => {
-      const result: string[] = await imageDataRepository.getImageNameListByImageNo(testBoard.imageNo);
+      const result: string[] = await imageDataRepository.getImageNameListByImageNo(testBoard.id);
 
       expect(result).not.toStrictEqual([]);
       expect(result.length).toBe(testBoardImageData.length);
@@ -127,9 +128,20 @@ describe('imageDataRepository', () => {
 
     it('데이터가 없는 경우', async () => {
       await imageDataRepository.deleteAll();
-      const result: string[] = await imageDataRepository.getImageNameListByImageNo(testBoard.imageNo);
+      const result: string[] = await imageDataRepository.getImageNameListByImageNo(testBoard.id);
 
       expect(result).toStrictEqual([]);
     })
   });
+
+  describe('findAllByImageId', () => {
+    it('정상 조회', async() => {
+      const result: ImageData[] = await imageDataRepository.findAllByImageId(testBoard.id);
+
+      expect(result).not.toStrictEqual([]);
+      expect(result.length).toBe(3);
+      let imageStep = 1;
+      result.forEach(entity => expect(entity.imageStep).toBe(imageStep++));
+    })
+  })
 });

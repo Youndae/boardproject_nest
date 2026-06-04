@@ -9,17 +9,21 @@ import { AuthMapper } from "#member/mapper/auth.mapper";
 
 interface ParsedProfile {
 	userId: string;
-	email: string | null;
+	email: string;
 	username: string;
 }
 
 @Injectable()
 export class OAuthService {
+  private readonly logger: LoggerService;
+
 	constructor(
 		private readonly memberRepository: MemberRepository,
 		private readonly authRepository: AuthRepository,
-		private readonly logger: LoggerService
-	) {}
+		private readonly originalLogger: LoggerService
+	) {
+    this.logger = this.originalLogger.setContext(OAuthService.name);
+  }
 
 	parseGoogleProfile(profile: any): ParsedProfile {
 		return {
@@ -47,38 +51,35 @@ export class OAuthService {
 
 	@Transactional()
 	async findOrCreateOAuthMember(provider: string, parsedProfile: ParsedProfile) {
-    console.log('oAuthService findOrCreateOAuthMember');
 		try {
 			const { userId, email, username } = parsedProfile;
-
-      console.log('oAuthService findOrCreateOAuthMember2');
-
 			let member = await this.memberRepository.findOAuthMember(provider, userId);
 
-      console.log('oAuthService findOrCreateOAuthMember :: member : ', member);
-
 			if(!member) {
-        console.log('oAuthService findOrCreateOAuthMember :: member is null create Member');
+        this.logger.info('findOrCreateOAuthMember :: member is null create Member');
 				member = await MemberMapper.toEntityByOAuth({
 					userId,
-					email: email!,
+					email: email,
 					userName: username,
 					provider,
 				});
 
-				const auth = AuthMapper.toEntityByMember(userId);
+				const savedMember = await this.memberRepository.save(member);
 
-        console.log('oAuthService findOrCreateOAuthMember :: member2 : ', member);
-        console.log('oAuthService findOrCreateOAuthMember :: auth : ', auth);
-
-				await this.memberRepository.save(member);
+        const auth = AuthMapper.toEntityByMember(savedMember.id);
 				await this.authRepository.save(auth);
 			}
 
 			return member;
 		}catch(error) {
-			this.logger.error('Failed to find or create OAuth Member', error);
+			this.logger.error('findOrCreateOAuthMember :: Failed to find or create OAuth Member', error);
 			throw error;
 		}
 	}
+
+  async checkOAuthNickname(userId: string): Promise<boolean> {
+    const nickname: string | null = await this.memberRepository.findNicknameByOAuthUserId(userId);
+
+    return nickname !== null;
+  }
 }

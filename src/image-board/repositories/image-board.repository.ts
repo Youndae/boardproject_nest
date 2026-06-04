@@ -1,13 +1,12 @@
-import { DataSource, Like, Repository } from 'typeorm';
+import { Brackets, DataSource, Repository } from 'typeorm';
 import { ImageBoard } from '#imageBoard/entities/image-board.entity';
 import { Injectable } from '@nestjs/common';
 import { PaginationDTO } from '#common/dtos/in/pagination.dto';
 import { getPaginationOffset, setKeyword } from '#common/utils/pagination-offset.utils';
-import { ImageBoardListResponseDTO } from '#imageBoard/dtos/out/image-board-list-response.dto';
-import { ImageBoardListRowType } from '#imageBoard/types/image-board-list.type';
-import { ImageBoardDetailResponseDTO } from '#imageBoard/dtos/out/image-board-detail-response.dto';
-
-const imageAmount: number = 15;
+import { ImageBoardListResponse } from '#imageBoard/dtos/out/image-board-list.response.dto';
+import { ImageBoardDetailResponse } from '#imageBoard/dtos/out/image-board-detail.response.dto';
+import { ListResponse } from '#common/dtos/out/list.response.dto';
+import { PAGE_AMOUNT } from '#common/constants/common-page-amount.constants';
 
 @Injectable()
 export class ImageBoardRepository extends Repository<ImageBoard> {
@@ -15,90 +14,88 @@ export class ImageBoardRepository extends Repository<ImageBoard> {
     super(ImageBoard, dataSource.manager);
   }
 
-  async getImageBoardList(pageDTO: PaginationDTO): Promise<{
-    list: ImageBoardListResponseDTO[],
-    totalElements: number
-  }> {
-    const offset: number = getPaginationOffset(pageDTO.pageNum, imageAmount);
+  async getImageBoardList(pageDTO: PaginationDTO): Promise<ListResponse<ImageBoardListResponse>> {
+    const imageAmount = PAGE_AMOUNT.IMAGE;
+    const offset: number = getPaginationOffset(pageDTO.page, imageAmount);
     const keyword: string = setKeyword(pageDTO.keyword);
-    let whereClause = '';
-    let countClause = {};
-    const param: any[] = [];
 
-    if(keyword){
-      switch (pageDTO.searchType) {
-        case 't':
-            whereClause = 'WHERE ib.imageTitle LIKE ?';
-            countClause = { imageTitle: Like(keyword) };
-            param.push(keyword);
-            break;
-        case 'c':
-            whereClause =  'WHERE ib.imageContent LIKE ?';
-            countClause = { imageContent: Like(keyword) };
-            param.push(keyword);
-            break;
-        case 'tc':
-            whereClause = 'WHERE ib.imageTitle LIKE ? OR ib.imageContent LIKE ?';
-            countClause = [
-              { imageTitle: Like(keyword) },
-              { imageContent: Like(keyword) },
-            ];
-            param.push(keyword, keyword);
-            break;
-        case 'u':
-            whereClause = 'WHERE ib.userId LIKE ?';
-            countClause = { userId: Like(keyword) };
-            param.push(keyword);
-            break;
-        default:
-            return { list: [], totalElements: 0}
+    const query = this.createQueryBuilder('imageBoard')
+      .innerJoin('imageBoard.imageDatas', 'imageDatas')
+      .leftJoin('imageBoard.member', 'member')
+      .select([
+        'imageBoard.id',
+        'imageBoard.title'
+      ])
+      .addSelect('imageBoard.id', 'targetId')
+      .addSelect('MIN(imageDatas.image_name)', 'imageName')
+      .groupBy('imageBoard.id')
+      .skip(offset)
+      .take(imageAmount)
+      .orderBy('imageBoard.id', 'DESC');
+
+    let isSearchable = true;
+
+    if(keyword) {
+      const validSearchTypes = ['t', 'c', 'tc', 'u'];
+
+      if(!pageDTO.searchType || !validSearchTypes.includes(pageDTO.searchType))
+        isSearchable = false;
+      else {
+        query.andWhere(new Brackets((qb) => {
+          if(pageDTO.searchType === 't' || pageDTO.searchType === 'tc')
+            qb.orWhere('imageBoard.title LIKE :keyword');
+
+          if(pageDTO.searchType === 'c' || pageDTO.searchType === 'tc')
+            qb.orWhere('imageBoard.content LIKE :keyword');
+
+          if(pageDTO.searchType === 'u')
+            qb.orWhere('member.nickname LIKE :keyword')
+        }), { keyword })
       }
     }
 
-    param.push(imageAmount, offset);
+    if(!isSearchable)
+      return new ListResponse([], 0, imageAmount, pageDTO.page);
 
-    const query = `
-      WITH image_datas AS (
-        SELECT
-          imageNo,
-          imageName,
-          ROW_NUMBER() OVER (PARTITION BY imageNo ORDER BY imageStep ASC) AS rn
-        FROM imageData
-      )
-      SELECT
-        ib.imageNo AS imageNo,
-        ib.imageTitle AS imageTitle,
-        ib.userId AS userId,
-        ib.imageDate AS imageDate,
-        id.imageName AS imageName
-      FROM imageBoard ib
-      LEFT JOIN image_datas id
-      ON ib.imageNo = id.imageNo AND id.rn = 1
-      ${whereClause}
-      ORDER BY ib.imageNo DESC
-      LIMIT ? OFFSET ?;
-    `;
+    const { entities, raw } = await query.getRawAndEntities();
+    const totalElements = await query.getCount();
 
+    const list: ImageBoardListResponse[] = entities.map(
+      (entity: ImageBoard): ImageBoardListResponse => {
+        const rawData = raw.find(r => r.targetId === entity.id);
+        const imageName = rawData.imageName;
+        return new ImageBoardListResponse(entity, imageName);
+      });
 
-    const lists = await this.query(query, param) as ImageBoardListRowType[];
-    const list: ImageBoardListResponseDTO[] = lists.map(
-      (entity: ImageBoardListRowType) => new ImageBoardListResponseDTO(entity)
-    );
-    const totalElements: number = await this.count({ where: countClause });
-
-    return { list, totalElements };
+    return new ListResponse(list, totalElements, imageAmount, pageDTO.page);
   }
 
-  async getImageBoardDetail(imageNo: number): Promise<ImageBoardDetailResponseDTO | null> {
-    const boardDetail: ImageBoard | null = await this.createQueryBuilder('ib')
-      .leftJoinAndSelect('ib.imageDatas', 'id')
-      .where('ib.imageNo = :imageNo', { imageNo })
-      .orderBy('id.imageStep', 'ASC')
+  async getImageBoardDetail(id: number): Promise<ImageBoardDetailResponse | null> {
+    const board = await this.createQueryBuilder('imageBoard')
+      .leftJoinAndSelect('imageBoard.imageDatas', 'imageDatas')
+      .leftJoinAndSelect('imageBoard.member', 'member')
+      .where('imageBoard.id = :id', { id })
+      .orderBy('imageDatas.imageStep', 'ASC')
       .getOne();
 
-    if(!boardDetail)
+    if(!board)
       return null;
 
-    return new ImageBoardDetailResponseDTO(boardDetail);
+    return new ImageBoardDetailResponse(board);
+  }
+
+  async findUserIdById(id: number): Promise<number | null> {
+    const board = await this.createQueryBuilder('imageBoard')
+      .select(['imageBoard.userId'])
+      .where({ id })
+      .getOne();
+
+    return board ? board.userId : null;
+  }
+
+  async findById(id: number): Promise<ImageBoard | null> {
+    return await this.createQueryBuilder('imageBoard')
+      .where({ id })
+      .getOne();
   }
 }

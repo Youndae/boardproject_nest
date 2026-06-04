@@ -8,12 +8,19 @@ export class ImageDataRepository extends Repository<ImageData> {
     super(ImageData, datasource.manager);
   }
 
-  async getImageNameListByImageNo(imageNo: number): Promise<string[]> {
+  async getImageNameListByImageNo(imageId: number): Promise<string[]> {
     const result: ImageData[] = await this.find({
       select: ['imageName'],
-      where: { imageNo }
+      where: { imageId }
     });
 
     return result.map((entity) => entity.imageName);
+  }
+
+  async findAllByImageId(imageId: number): Promise<ImageData[]> {
+    return await this.createQueryBuilder('imageData')
+      .where('imageData.imageId = :imageId', { imageId })
+      .orderBy('imageData.imageStep', 'ASC')
+      .getMany();
   }
 }

@@ -6,11 +6,14 @@ import { InternalServerErrorException } from '#common/exceptions/internal-server
 
 @Injectable()
 export class RedisService {
+  private readonly logger: LoggerService;
   constructor(
     @Inject(REDIS_CLIENT)
     private readonly redisClient: RedisClientType,
-    private readonly logger: LoggerService,
-  ) {}
+    private readonly originalLogger: LoggerService,
+  ) {
+    this.logger = this.originalLogger.setContext(RedisService.name);
+  }
 
   async getTokenValue(redisKey: string): Promise<string | null> {
     try {

@@ -51,6 +51,6 @@ export function imageFileFilter(req: Request, file: Express.Multer.File, cb) {
 
 export function getMaxFileSize(type: UploadRequestType, config: ConfigService): number {
 	const key = type === 'profile' ? 'PROFILE_MAX_FILE_SIZE' : 'BOARD_MAX_FILE_SIZE';
-	
+
 	return Number(config.get<string>(key)) || 1024 * 1024 * 5;
 }

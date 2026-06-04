@@ -16,10 +16,16 @@ import { BoardModule } from '#board/board.module';
 import { ImageBoardModule } from '#imageBoard/image-board.module';
 import { CommentModule } from '#comment/comment.module';
 import { TestDatabaseModule } from '../../module/testDatabase.module';
-import { CommentListRequestDTO } from '#comment/dtos/in/comment-list-request.dto';
-import { CommentListResponseDTO } from '#comment/dtos/out/comment-list-response.dto';
-import { CommentPostRequestDTO } from '#comment/dtos/in/comment-post-request.dto';
-import { CommentPostReplyRequestDTO } from '#comment/dtos/in/comment-post-reply-request.dto';
+import { CommentListRequest } from '#comment/dtos/in/comment-list.request.dto';
+import { CommentListResponse } from '#comment/dtos/out/comment-list.response.dto';
+import { PostCommentRequest } from '#comment/dtos/in/post-comment.request.dto';
+import { CommentPostReplyRequest } from '#comment/dtos/in/comment-post-reply.request.dto';
+import { PAGE_AMOUNT } from '#common/constants/common-page-amount.constants';
+import { ListResponse } from '#common/dtos/out/list.response.dto';
+import { COMMENT_TARGET } from '#comment/constants/comment-list-type.constants';
+import { getTotalPages } from '../../utils/pagination.utils';
+import { BadRequestException } from '#common/exceptions/bad-request.exception';
+import { AccessDeniedException } from '#common/exceptions/access-denied.exception';
 
 describe('comment.service Integration', () => {
   let app: INestApplication;
@@ -35,7 +41,7 @@ describe('comment.service Integration', () => {
   let member: Member = new Member();
   let testComment: Comment;
 
-  const commentAmount: number = 20;
+  const commentAmount: number = PAGE_AMOUNT.COMMENT;
 
   const commentListCount: number = 30;
   const boardCommentContentPrefix: string = 'boardCommentContent';
@@ -78,38 +84,37 @@ describe('comment.service Integration', () => {
     await imageBoardRepository.deleteAll();
     await memberRepository.deleteAll();
 
-    const userId: string = 'tester';
-
-    member.userId = userId;
-    member.userPw = '1234';
-    member.userName = 'testerName';
-    member.nickName = 'testerNickname';
+    member.userId = 'tester';
+    member.password = '1234';
+    member.username = 'testerName';
+    member.nickname = 'testerNickname';
     member.email = 'tester@tester.com';
-    member.profileThumbnail = 'localProfileName.jpg';
+    member.profile = 'localProfileName.jpg';
     member.provider = 'local';
 
     const saveMember: Member = memberRepository.create(member);
-    await memberRepository.save(saveMember);
+    const savedMember: Member = await memberRepository.save(saveMember);
+    member.id = savedMember.id;
 
     const board: Board = boardRepository.create({
-      userId: userId,
-      boardTitle: 'testBoardTitle',
-      boardContent: 'testBoardContent',
-      boardIndent: 1
+      userId: member.id,
+      title: 'testBoardTitle',
+      content: 'testBoardContent',
+      indent: 0
     });
 
     const saveBoard: Board = await boardRepository.save(board);
-    saveBoard.boardGroupNo = saveBoard.boardNo;
-    saveBoard.boardUpperNo = `${saveBoard.boardNo}`;
+    saveBoard.groupNo = saveBoard.id;
+    saveBoard.upperNo = `${saveBoard.id}`;
 
     await boardRepository.save(saveBoard);
 
     testBoard = saveBoard;
 
     const imageBoard: ImageBoard = imageBoardRepository.create({
-      userId: userId,
-      imageTitle: 'testImageBoardTitle',
-      imageContent: 'testImageBoardContent'
+      userId: member.id,
+      title: 'testImageBoardTitle',
+      content: 'testImageBoardContent'
     });
 
     const saveImageBoard: ImageBoard = await imageBoardRepository.save(imageBoard);
@@ -124,21 +129,21 @@ describe('comment.service Integration', () => {
     for(let i = 0; i < commentListCount; i++) {
       commentArr.push(
         commentRepository.create({
-          boardNo: testBoard.boardNo,
-          imageNo: null,
-          userId: member.userId,
-          commentContent: `${boardCommentContentPrefix}${i}`,
-          commentIndent: 1
+          boardId: testBoard.id,
+          imageId: null,
+          userId: member.id,
+          content: `${boardCommentContentPrefix}${i}`,
+          indent: 0
         })
       );
 
       commentArr.push(
         commentRepository.create({
-          boardNo: null,
-          imageNo: testImageBoard.imageNo,
-          userId: member.userId,
-          commentContent: `${imageBoardCommentContentPrefix}${i}`,
-          commentIndent: 1
+          boardId: null,
+          imageId: testImageBoard.id,
+          userId: member.id,
+          content: `${imageBoardCommentContentPrefix}${i}`,
+          indent: 1
         })
       );
     }
@@ -146,52 +151,52 @@ describe('comment.service Integration', () => {
     const saveComment: Comment[] = await commentRepository.save(commentArr);
 
     saveComment.forEach(entity => {
-      entity.commentGroupNo = entity.commentNo;
-      entity.commentUpperNo = `${entity.commentNo}`;
+      entity.groupNo = entity.id;
+      entity.upperNo = `${entity.id}`;
     });
     testComment = saveComment[0];
 
-    let commentReplyStartNo: number = saveComment[saveComment.length - 1].commentNo;
+    let commentReplyStartNo: number = saveComment[saveComment.length - 1].id;
     const replyEntity: Comment = saveComment.filter(entity =>
-      entity.commentContent === `${boardCommentContentPrefix}${commentListCount - 1}`
+      entity.content === `${boardCommentContentPrefix}${commentListCount - 1}`
     )[0];
 
     saveComment.push(
       commentRepository.create({
-        commentNo: ++commentReplyStartNo,
-        boardNo: replyEntity.boardNo,
-        imageNo: null,
-        userId: member.userId,
-        commentContent: `reply${boardCommentContentPrefix}1`,
-        commentGroupNo: replyEntity.commentGroupNo,
-        commentUpperNo: `${replyEntity.commentUpperNo},${commentReplyStartNo}`,
-        commentIndent: 2
+        id: ++commentReplyStartNo,
+        boardId: replyEntity.boardId,
+        imageId: null,
+        userId: member.id,
+        content: `reply${boardCommentContentPrefix}1`,
+        groupNo: replyEntity.groupNo,
+        upperNo: `${replyEntity.upperNo},${commentReplyStartNo}`,
+        indent: 1
       })
     )
 
     saveComment.push(
       commentRepository.create({
-        commentNo: ++commentReplyStartNo,
-        boardNo: replyEntity.boardNo,
-        imageNo: null,
-        userId: member.userId,
-        commentContent: `reply${boardCommentContentPrefix}2`,
-        commentGroupNo: replyEntity.commentGroupNo,
-        commentUpperNo: `${replyEntity.commentUpperNo},${commentReplyStartNo}`,
-        commentIndent: 2
+        id: ++commentReplyStartNo,
+        boardId: replyEntity.boardId,
+        imageId: null,
+        userId: member.id,
+        content: `reply${boardCommentContentPrefix}2`,
+        groupNo: replyEntity.groupNo,
+        upperNo: `${replyEntity.upperNo},${commentReplyStartNo}`,
+        indent: 1
       })
     )
 
     saveComment.push(
       commentRepository.create({
-        commentNo: ++commentReplyStartNo,
-        boardNo: replyEntity.boardNo,
-        imageNo: null,
-        userId: member.userId,
-        commentContent: `reply${boardCommentContentPrefix}3`,
-        commentGroupNo: replyEntity.commentGroupNo,
-        commentUpperNo: `${replyEntity.commentUpperNo},${commentReplyStartNo - 2},${commentReplyStartNo}`,
-        commentIndent: 3
+        id: ++commentReplyStartNo,
+        boardId: replyEntity.boardId,
+        imageId: null,
+        userId: member.id,
+        content: `reply${boardCommentContentPrefix}3`,
+        groupNo: replyEntity.groupNo,
+        upperNo: `${replyEntity.upperNo},${commentReplyStartNo - 2},${commentReplyStartNo}`,
+        indent: 2
       })
     )
 
@@ -209,208 +214,159 @@ describe('comment.service Integration', () => {
 
   describe('getCommentListService', () => {
     it('정상 조회. 일반 게시글 기준', async () => {
-      const commentListDTO: CommentListRequestDTO = new CommentListRequestDTO();
-      commentListDTO.boardNo = testBoard.boardNo;
+      const commentListDTO: CommentListRequest = new CommentListRequest();
+      commentListDTO.id = testBoard.id;
+      // reply 3개 포함
+      const totalPageFixture: number = getTotalPages(commentListCount + 3, commentAmount);
+      const result: ListResponse<CommentListResponse> = await commentService.getCommentListService(commentListDTO, COMMENT_TARGET.BOARD);
 
-      const result: {
-        list: CommentListResponseDTO[],
-        totalElements: number
-      } = await commentService.getCommentListService(commentListDTO);
+      expect(result.items).not.toStrictEqual([]);
+      expect(result.items.length).toBe(commentAmount);
+      expect(result.totalPages).toBe(totalPageFixture);
+      expect(result.isEmpty).toBeFalsy();
+      expect(result.currentPage).toBe(1);
 
-      expect(result.list).not.toStrictEqual([]);
-      expect(result.list.length).toBe(commentAmount);
-      expect(result.totalElements).toBe(commentListCount + 3);
-
-      expect(result.list[1].commentContent).toBe(`reply${boardCommentContentPrefix}1`);
-      expect(result.list[2].commentContent).toBe(`reply${boardCommentContentPrefix}3`);
-      expect(result.list[3].commentContent).toBe(`reply${boardCommentContentPrefix}2`);
+      expect(result.items[1].content).toBe(`reply${boardCommentContentPrefix}1`);
+      expect(result.items[2].content).toBe(`reply${boardCommentContentPrefix}3`);
+      expect(result.items[3].content).toBe(`reply${boardCommentContentPrefix}2`);
     });
 
     it('정상 조회. 이미지 게시글 기준', async () => {
-      const commentListDTO: CommentListRequestDTO = new CommentListRequestDTO();
-      commentListDTO.imageNo = testImageBoard.imageNo;
+      const commentListDTO: CommentListRequest = new CommentListRequest();
+      commentListDTO.id = testImageBoard.id;
 
-      const result: {
-        list: CommentListResponseDTO[],
-        totalElements: number
-      } = await commentService.getCommentListService(commentListDTO);
+      // image comment는 reply fixture가 없으므로 + 3 하지 않음
+      const totalPageFixture = getTotalPages(commentListCount, commentAmount);
+      const result: ListResponse<CommentListResponse> = await commentService.getCommentListService(commentListDTO, COMMENT_TARGET.IMAGE);
 
-      expect(result.list).not.toStrictEqual([]);
-      expect(result.list.length).toBe(commentAmount);
-      expect(result.totalElements).toBe(commentListCount);
+      expect(result.items).not.toStrictEqual([]);
+      expect(result.items.length).toBe(commentAmount);
+      expect(result.totalPages).toBe(totalPageFixture);
+      expect(result.isEmpty).toBeFalsy();
+      expect(result.currentPage).toBe(1);
     });
 
     it('정상 조회. 2페이지 조회', async () => {
-      const commentListDTO: CommentListRequestDTO = new CommentListRequestDTO();
-      commentListDTO.boardNo = testBoard.boardNo;
-      commentListDTO.pageNum = 2;
+      const commentListDTO: CommentListRequest = new CommentListRequest();
+      commentListDTO.id = testBoard.id;
+      commentListDTO.page = 2;
 
-      const result: {
-        list: CommentListResponseDTO[],
-        totalElements: number
-      } = await commentService.getCommentListService(commentListDTO);
+      const totalPageFixture: number = getTotalPages(commentListCount + 3, commentAmount);
+      const result: ListResponse<CommentListResponse> = await commentService.getCommentListService(commentListDTO, COMMENT_TARGET.BOARD);
 
       const contentSize: number = Math.min((commentListCount + 3 - commentAmount), commentAmount);
 
-      expect(result.list).not.toStrictEqual([]);
-      expect(result.list.length).toBe(contentSize);
-      expect(result.totalElements).toBe(commentListCount + 3);
+      expect(result.items).not.toStrictEqual([]);
+      expect(result.items.length).toBe(contentSize);
+      expect(result.totalPages).toBe(totalPageFixture);
+      expect(result.isEmpty).toBeFalsy();
+      expect(result.currentPage).toBe(2);
     });
 
     it('데이터가 없는 경우', async () => {
       await commentRepository.deleteAll();
-      const commentListDTO: CommentListRequestDTO = new CommentListRequestDTO();
-      commentListDTO.boardNo = testBoard.boardNo;
+      const commentListDTO: CommentListRequest = new CommentListRequest();
+      commentListDTO.id = testBoard.id;
 
-      const result: {
-        list: CommentListResponseDTO[],
-        totalElements: number
-      } = await commentService.getCommentListService(commentListDTO);
+      const result: ListResponse<CommentListResponse> = await commentService.getCommentListService(commentListDTO, COMMENT_TARGET.BOARD);
 
-      expect(result.list).toStrictEqual([]);
-      expect(result.totalElements).toBe(0);
-    });
-
-    it('모든 게시글 번호가 undefined인 경우', async () => {
-      const commentListDTO: CommentListRequestDTO = new CommentListRequestDTO();
-
-      await expect(commentService.getCommentListService(commentListDTO))
-        .rejects
-        .toThrow('BAD_REQUEST');
-    });
-
-    it('모든 게시글 번호가 존재하는 경우', async () => {
-      const commentListDTO: CommentListRequestDTO = new CommentListRequestDTO();
-      commentListDTO.boardNo = testBoard.boardNo;
-      commentListDTO.imageNo = testImageBoard.imageNo;
-
-      await expect(commentService.getCommentListService(commentListDTO))
-        .rejects
-        .toThrow('BAD_REQUEST');
+      expect(result.items).toStrictEqual([]);
+      expect(result.totalPages).toBe(0);
+      expect(result.isEmpty).toBeTruthy();
+      expect(result.currentPage).toBe(1);
     });
   });
 
   describe('postCommentService', () => {
-    const postDTO: CommentPostRequestDTO = new CommentPostRequestDTO();
-    postDTO.commentContent = 'testPostCommentContent';
+    const postDTO: PostCommentRequest = new PostCommentRequest();
+    postDTO.content = 'testPostCommentContent';
     it('정상 처리. 일반 게시글 기준', async () => {
-      await commentService.postCommentService(postDTO, member.userId, { boardNo: testBoard.boardNo });
+      await commentService.postCommentService(postDTO, member.id, { boardId: testBoard.id });
 
-      const comment: Comment[] = await commentRepository.find({ where: { boardNo: testBoard.boardNo }, order: { 'commentNo': 'DESC' } });
+      const comment: Comment[] = await commentRepository.find({ where: { boardId: testBoard.id }, order: { 'id': 'DESC' } });
       const saveComment: Comment = comment[0];
 
-      expect(saveComment.userId).toBe(member.userId);
-      expect(saveComment.commentContent).toBe(postDTO.commentContent);
-      expect(saveComment.commentGroupNo).toBe(saveComment.commentNo);
-      expect(saveComment.commentUpperNo).toBe(`${saveComment.commentNo}`);
-      expect(saveComment.commentIndent).toBe(1);
-      expect(saveComment.imageNo).toBeNull();
+      expect(saveComment.userId).toBe(member.id);
+      expect(saveComment.content).toBe(postDTO.content);
+      expect(saveComment.groupNo).toBe(saveComment.id);
+      expect(saveComment.upperNo).toBe(`${saveComment.id}`);
+      expect(saveComment.indent).toBe(0);
+      expect(saveComment.imageId).toBeNull();
+      expect(saveComment.boardId).toBe(testBoard.id);
     });
 
     it('정상 처리. 이미지 게시글 기준', async () => {
-      await commentService.postCommentService(postDTO, member.userId, { imageNo: testImageBoard.imageNo });
+      await commentService.postCommentService(postDTO, member.id, { imageId: testImageBoard.id });
 
-      const comment: Comment[] = await commentRepository.find({ where: { imageNo: testImageBoard.imageNo }, order: { 'commentNo': 'DESC' } });
+      const comment: Comment[] = await commentRepository.find({ where: { imageId: testImageBoard.id }, order: { 'id': 'DESC' } });
       const saveComment: Comment = comment[0];
 
-      expect(saveComment.userId).toBe(member.userId);
-      expect(saveComment.commentContent).toBe(postDTO.commentContent);
-      expect(saveComment.commentGroupNo).toBe(saveComment.commentNo);
-      expect(saveComment.commentUpperNo).toBe(`${saveComment.commentNo}`);
-      expect(saveComment.commentIndent).toBe(1);
-      expect(saveComment.boardNo).toBeNull();
+      expect(saveComment.userId).toBe(member.id);
+      expect(saveComment.content).toBe(postDTO.content);
+      expect(saveComment.groupNo).toBe(saveComment.id);
+      expect(saveComment.upperNo).toBe(`${saveComment.id}`);
+      expect(saveComment.indent).toBe(0);
+      expect(saveComment.boardId).toBeNull();
+      expect(saveComment.imageId).toBe(testImageBoard.id);
     });
 
     it('두 게시글 번호가 모두 존재하는 경우', async () => {
-      await expect(commentService.postCommentService(postDTO, member.userId, { boardNo: testBoard.boardNo, imageNo: testImageBoard.imageNo }))
+      await expect(commentService.postCommentService(postDTO, member.id, { boardId: testBoard.id, imageId: testImageBoard.id }))
         .rejects
-        .toThrow('BAD_REQUEST');
+        .toThrow(BadRequestException);
     });
 
     it('두 게시글 번호가 모두 undefined인 경우', async () => {
-      await expect(commentService.postCommentService(postDTO, member.userId, {}))
+      await expect(commentService.postCommentService(postDTO, member.id, {}))
         .rejects
-        .toThrow('BAD_REQUEST');
+        .toThrow(BadRequestException);
     });
   });
 
   describe('deleteCommentService', () => {
     it('정상 처리', async () => {
-      await commentService.deleteCommentService(testComment.commentNo, member.userId);
+      await commentService.deleteCommentService(testComment.id, member.id);
 
-      const deleteComment: Comment | null = await commentRepository.findOne({ where: { commentNo: testComment.commentNo } });
+      const deleteComment: Comment | null = await commentRepository.findOne({ where: { id: testComment.id } });
 
       expect(deleteComment).toBeNull();
     });
 
     it('데이터가 없는 경우', async () => {
-      await expect(commentService.deleteCommentService(0, member.userId))
+      await expect(commentService.deleteCommentService(0, member.id))
         .rejects
-        .toThrow('NOT_FOUND');
+        .toThrow(BadRequestException);
     });
 
     it('작성자가 아닌 경우', async () => {
-      await expect(commentService.deleteCommentService(testComment.commentNo, 'noneUser'))
+      await expect(commentService.deleteCommentService(testComment.id, 2))
         .rejects
-        .toThrow('ACCESS_DENIED');
+        .toThrow(AccessDeniedException);
     });
   });
 
   describe('postReplyService', () => {
-    const getReplyDTO = (): CommentPostReplyRequestDTO => {
-      const replyDTO: CommentPostReplyRequestDTO = new CommentPostReplyRequestDTO();
-      replyDTO.commentContent = 'testReplyCommentContent';
-      replyDTO.commentGroupNo = testComment.commentGroupNo;
-      replyDTO.commentIndent = testComment.commentIndent;
-      replyDTO.commentUpperNo = testComment.commentUpperNo;
-
-      return replyDTO;
-    }
-
+    const replyRequest: CommentPostReplyRequest = new CommentPostReplyRequest();
+    replyRequest.content = 'testReplyCommentContent';
     it('정상 처리. 일반 게시글 기준', async () => {
-      const postReplyDTO: CommentPostReplyRequestDTO = getReplyDTO();
 
-      await commentService.postReplyService(postReplyDTO, member.userId, { boardNo: testBoard.boardNo });
+      await commentService.postReplyService(replyRequest, testComment.id, member.id);
 
-      const comments: Comment[] = await commentRepository.find({ where: { boardNo: testBoard.boardNo }, order: { 'commentNo': 'DESC' } });
+      const comments: Comment[] = await commentRepository.find({ where: { boardId: testBoard.id }, order: { 'id': 'DESC' } });
       const reply: Comment = comments[0];
 
-      expect(reply.commentContent).toBe(postReplyDTO.commentContent);
-      expect(reply.commentGroupNo).toBe(postReplyDTO.commentGroupNo);
-      expect(reply.commentUpperNo).toBe(`${postReplyDTO.commentUpperNo},${reply.commentNo}`);
-      expect(reply.commentIndent).toBe(postReplyDTO.commentIndent + 1);
-      expect(reply.imageNo).toBeNull();
+      expect(reply.content).toBe(replyRequest.content);
+      expect(reply.groupNo).toBe(testComment.groupNo);
+      expect(reply.upperNo).toBe(`${testComment.upperNo},${reply.id}`);
+      expect(reply.indent).toBe(testComment.indent + 1);
+      expect(reply.imageId).toBe(testComment.imageId);
+      expect(reply.boardId).toBe(testComment.boardId);
     });
 
-    it('정상 처리. 이미지 게시글 기준', async () => {
-      const postReplyDTO: CommentPostReplyRequestDTO = getReplyDTO();
-
-      await commentService.postReplyService(postReplyDTO, member.userId, { imageNo: testImageBoard.imageNo });
-
-      const comments: Comment[] = await commentRepository.find({ where: { imageNo: testImageBoard.imageNo }, order: { 'commentNo': 'DESC' } });
-      const reply: Comment = comments[0];
-
-      expect(reply.commentContent).toBe(postReplyDTO.commentContent);
-      expect(reply.commentGroupNo).toBe(postReplyDTO.commentGroupNo);
-      expect(reply.commentUpperNo).toBe(`${postReplyDTO.commentUpperNo},${reply.commentNo}`);
-      expect(reply.commentIndent).toBe(postReplyDTO.commentIndent + 1);
-      expect(reply.boardNo).toBeNull();
-    });
-
-    it('게시글 번호가 둘다 undefined인 경우', async () => {
-      const postReplyDTO: CommentPostReplyRequestDTO = getReplyDTO();
-
-      await expect(commentService.postReplyService(postReplyDTO, member.userId, { }))
+    it('상위 댓글 데이터가 없는 경우', async () => {
+      await expect(commentService.postReplyService(replyRequest, 0, member.id))
         .rejects
-        .toThrow('BAD_REQUEST');
-    });
-
-    it('게시글 번호가 둘다 존재하는 경우', async () => {
-      const postReplyDTO: CommentPostReplyRequestDTO = getReplyDTO();
-
-      await expect(commentService.postReplyService(postReplyDTO, member.userId, { boardNo: testBoard.boardNo, imageNo: testImageBoard.imageNo }))
-        .rejects
-        .toThrow('BAD_REQUEST');
+        .toThrow(BadRequestException);
     });
   });
 });

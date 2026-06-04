@@ -10,7 +10,11 @@ import { LoggerService } from '#config/logger/logger.service';
 
 @Catch()
 export class ExceptionsFilter implements ExceptionFilter {
-  constructor(private readonly  logger: LoggerService) {}
+  private readonly logger: LoggerService;
+
+  constructor(private readonly originalLogger: LoggerService) {
+    this.logger = this.originalLogger.setContext(ExceptionsFilter.name);
+  }
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
@@ -34,7 +38,7 @@ export class ExceptionsFilter implements ExceptionFilter {
     );
 
     response.status(status).json({
-      statusCode: status,
+      code: status,
       timestamp: new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul'}),
       path: request.url,
       message,

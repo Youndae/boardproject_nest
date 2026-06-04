@@ -1,4 +1,4 @@
-import { definedMessage, minMessage, notEmptyMessage } from '#common/constants/common-validate-message.constans';
+import { definedMessage, minMessage, notEmptyMessage } from '#common/constants/common-validate-message.constants';
 
 export const commentContentDefinedMessage: string = definedMessage('commentContent');
 export const commentContentNotEmptyMessage: string = notEmptyMessage('commentContent');

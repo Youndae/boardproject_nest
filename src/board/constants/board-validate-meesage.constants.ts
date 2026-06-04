@@ -3,7 +3,7 @@ import {
   lengthMessage,
   minMessage,
   notEmptyMessage,
-} from '#common/constants/common-validate-message.constans';
+} from '#common/constants/common-validate-message.constants';
 
 export const boardTitleDefinedMessage: string = definedMessage('boardTitle');
 export const boardTitleLengthMessage: string = lengthMessage('boardTitle', 2);

@@ -15,10 +15,13 @@ import { ImageBoardModule } from '#imageBoard/image-board.module';
 import { CommentModule } from '#comment/comment.module';
 import { Member } from '#member/entities/member.entity';
 import { Comment } from '#comment/entities/comment.entity';
-import { CommentListRequestDTO } from '#comment/dtos/in/comment-list-request.dto';
-import { CommentListResponseDTO } from '#comment/dtos/out/comment-list-response.dto';
-import { CommentPostRequestDTO } from '#comment/dtos/in/comment-post-request.dto';
-import { CommentPostReplyRequestDTO } from '#comment/dtos/in/comment-post-reply-request.dto';
+import { CommentListRequest } from '#comment/dtos/in/comment-list.request.dto';
+import { CommentListResponse } from '#comment/dtos/out/comment-list.response.dto';
+import { PostCommentRequest } from '#comment/dtos/in/post-comment.request.dto';
+import { CommentPostReplyRequest } from '#comment/dtos/in/comment-post-reply.request.dto';
+import { ListResponse } from '#common/dtos/out/list.response.dto';
+import { COMMENT_TARGET } from '#comment/constants/comment-list-type.constants';
+import { getTotalPages } from '../../utils/pagination.utils';
 
 describe('commentRepository', () => {
   let memberRepository: MemberRepository;
@@ -75,38 +78,37 @@ describe('commentRepository', () => {
     await imageBoardRepository.deleteAll();
     await memberRepository.deleteAll();
 
-    const userId: string = 'tester';
-
-    member.userId = userId;
-    member.userPw = '1234';
-    member.userName = 'testerName';
-    member.nickName = 'testerNickname';
+    member.userId = 'tester';
+    member.password = '1234';
+    member.username = 'testerName';
+    member.nickname = 'testerNickname';
     member.email = 'tester@tester.com';
-    member.profileThumbnail = 'localProfileName.jpg';
+    member.profile = 'localProfileName.jpg';
     member.provider = 'local';
 
     const saveMember: Member = memberRepository.create(member);
-    await memberRepository.save(saveMember);
+    const savedMember: Member = await memberRepository.save(saveMember);
+    member.id = savedMember.id;
 
     const board: Board = boardRepository.create({
-      userId: userId,
-      boardTitle: 'testBoardTitle',
-      boardContent: 'testBoardContent',
-      boardIndent: 1
+      userId: member.id,
+      title: 'testBoardTitle',
+      content: 'testBoardContent',
+      indent: 0
     });
 
     const saveBoard: Board = await boardRepository.save(board);
-    saveBoard.boardGroupNo = saveBoard.boardNo;
-    saveBoard.boardUpperNo = `${saveBoard.boardNo}`;
+    saveBoard.groupNo = saveBoard.id;
+    saveBoard.upperNo = `${saveBoard.id}`;
 
     await boardRepository.save(saveBoard);
 
     testBoard = saveBoard;
 
     const imageBoard: ImageBoard = imageBoardRepository.create({
-      userId: userId,
-      imageTitle: 'testImageBoardTitle',
-      imageContent: 'testImageBoardContent'
+      userId: member.id,
+      title: 'testImageBoardTitle',
+      content: 'testImageBoardContent'
     });
 
     const saveImageBoard: ImageBoard = await imageBoardRepository.save(imageBoard);
@@ -121,21 +123,21 @@ describe('commentRepository', () => {
     for(let i = 0; i < commentListCount; i++) {
       commentArr.push(
         commentRepository.create({
-          boardNo: testBoard.boardNo,
-          imageNo: null,
-          userId: member.userId,
-          commentContent: `${boardCommentContentPrefix}${i}`,
-          commentIndent: 1
+          boardId: testBoard.id,
+          imageId: null,
+          userId: member.id,
+          content: `${boardCommentContentPrefix}${i}`,
+          indent: 0
         })
       );
 
       commentArr.push(
         commentRepository.create({
-          boardNo: null,
-          imageNo: testImageBoard.imageNo,
-          userId: member.userId,
-          commentContent: `${imageBoardCommentContentPrefix}${i}`,
-          commentIndent: 1
+          boardId: null,
+          imageId: testImageBoard.id,
+          userId: member.id,
+          content: `${imageBoardCommentContentPrefix}${i}`,
+          indent: 0
         })
       );
     }
@@ -143,52 +145,52 @@ describe('commentRepository', () => {
     const saveComment: Comment[] = await commentRepository.save(commentArr);
 
     saveComment.forEach(entity => {
-      entity.commentGroupNo = entity.commentNo;
-      entity.commentUpperNo = `${entity.commentNo}`;
+      entity.groupNo = entity.id;
+      entity.upperNo = `${entity.id}`;
     });
     testComment = saveComment[0];
 
-    let commentReplyStartNo: number = saveComment[saveComment.length - 1].commentNo;
+    let commentReplyStartNo: number = saveComment[saveComment.length - 1].id;
     const replyEntity: Comment = saveComment.filter(entity =>
-      entity.commentContent === `${boardCommentContentPrefix}${commentListCount - 1}`
+      entity.content === `${boardCommentContentPrefix}${commentListCount - 1}`
     )[0];
 
     saveComment.push(
       commentRepository.create({
-        commentNo: ++commentReplyStartNo,
-        boardNo: replyEntity.boardNo,
-        imageNo: null,
-        userId: member.userId,
-        commentContent: `reply${boardCommentContentPrefix}1`,
-        commentGroupNo: replyEntity.commentGroupNo,
-        commentUpperNo: `${replyEntity.commentUpperNo},${commentReplyStartNo}`,
-        commentIndent: 2
+        id: ++commentReplyStartNo,
+        boardId: replyEntity.boardId,
+        imageId: null,
+        userId: member.id,
+        content: `reply${boardCommentContentPrefix}1`,
+        groupNo: replyEntity.groupNo,
+        upperNo: `${replyEntity.upperNo},${commentReplyStartNo}`,
+        indent: 1
       })
     )
 
     saveComment.push(
       commentRepository.create({
-        commentNo: ++commentReplyStartNo,
-        boardNo: replyEntity.boardNo,
-        imageNo: null,
-        userId: member.userId,
-        commentContent: `reply${boardCommentContentPrefix}2`,
-        commentGroupNo: replyEntity.commentGroupNo,
-        commentUpperNo: `${replyEntity.commentUpperNo},${commentReplyStartNo}`,
-        commentIndent: 2
+        id: ++commentReplyStartNo,
+        boardId: replyEntity.boardId,
+        imageId: null,
+        userId: member.id,
+        content: `reply${boardCommentContentPrefix}2`,
+        groupNo: replyEntity.groupNo,
+        upperNo: `${replyEntity.upperNo},${commentReplyStartNo}`,
+        indent: 2
       })
     )
 
     saveComment.push(
       commentRepository.create({
-        commentNo: ++commentReplyStartNo,
-        boardNo: replyEntity.boardNo,
-        imageNo: null,
-        userId: member.userId,
-        commentContent: `reply${boardCommentContentPrefix}3`,
-        commentGroupNo: replyEntity.commentGroupNo,
-        commentUpperNo: `${replyEntity.commentUpperNo},${commentReplyStartNo - 2},${commentReplyStartNo}`,
-        commentIndent: 3
+        id: ++commentReplyStartNo,
+        boardId: replyEntity.boardId,
+        imageId: null,
+        userId: member.id,
+        content: `reply${boardCommentContentPrefix}3`,
+        groupNo: replyEntity.groupNo,
+        upperNo: `${replyEntity.upperNo},${commentReplyStartNo - 2},${commentReplyStartNo}`,
+        indent: 3
       })
     )
 
@@ -206,135 +208,101 @@ describe('commentRepository', () => {
 
   describe('getCommentList', () => {
     it('정상 조회. 일반 게시글 기준', async () => {
-      const commentListDTO: CommentListRequestDTO = new CommentListRequestDTO();
-      commentListDTO.boardNo = testBoard.boardNo;
+      const commentListDTO: CommentListRequest = new CommentListRequest();
+      commentListDTO.id = testBoard.id;
 
-      const result: {
-        list: CommentListResponseDTO[],
-        totalElements: number
-      } = await commentRepository.getCommentList(commentListDTO);
+      // reply 3개 추가 필요.
+      const totalPageFixture: number = getTotalPages(commentListCount + 3, commentAmount);
 
-      expect(result.list).not.toStrictEqual([]);
-      expect(result.list.length).toBe(commentAmount);
-      expect(result.totalElements).toBe(commentListCount + 3);
+      const result: ListResponse<CommentListResponse> = await commentRepository.getCommentList(commentListDTO, COMMENT_TARGET.BOARD);
 
-      expect(result.list[1].commentContent).toBe(`reply${boardCommentContentPrefix}1`);
-      expect(result.list[2].commentContent).toBe(`reply${boardCommentContentPrefix}3`);
-      expect(result.list[3].commentContent).toBe(`reply${boardCommentContentPrefix}2`);
+      expect(result.items).not.toStrictEqual([]);
+      expect(result.items.length).toBe(commentAmount);
+      expect(result.totalPages).toBe(totalPageFixture);
+      expect(result.isEmpty).toBeFalsy();
+      expect(result.currentPage).toBe(1);
+
+      expect(result.items[1].content).toBe(`reply${boardCommentContentPrefix}1`);
+      expect(result.items[2].content).toBe(`reply${boardCommentContentPrefix}3`);
+      expect(result.items[3].content).toBe(`reply${boardCommentContentPrefix}2`);
     });
 
     it('정상 조회. 이미지 게시글 기준', async () => {
-      const commentListDTO: CommentListRequestDTO = new CommentListRequestDTO();
-      commentListDTO.imageNo = testImageBoard.imageNo;
+      const commentListDTO: CommentListRequest = new CommentListRequest();
+      commentListDTO.id = testImageBoard.id;
 
-      const result: {
-        list: CommentListResponseDTO[],
-        totalElements: number
-      } = await commentRepository.getCommentList(commentListDTO);
+      const totalPageFixture: number = getTotalPages(commentListCount, commentAmount);
+      const result: ListResponse<CommentListResponse> = await commentRepository.getCommentList(commentListDTO, COMMENT_TARGET.IMAGE);
 
-      expect(result.list).not.toStrictEqual([]);
-      expect(result.list.length).toBe(commentAmount);
-      expect(result.totalElements).toBe(commentListCount);
+      expect(result.items).not.toStrictEqual([]);
+      expect(result.items.length).toBe(commentAmount);
+      expect(result.totalPages).toBe(totalPageFixture);
+      expect(result.isEmpty).toBeFalsy();
+      expect(result.currentPage).toBe(1);
     });
 
     it('데이터가 없는 경우', async () => {
       await commentRepository.deleteAll();
 
-      const commentListDTO: CommentListRequestDTO = new CommentListRequestDTO();
-      commentListDTO.imageNo = testImageBoard.imageNo;
+      const commentListDTO: CommentListRequest = new CommentListRequest();
+      commentListDTO.id = testImageBoard.id;
 
-      const result: {
-        list: CommentListResponseDTO[],
-        totalElements: number
-      } = await commentRepository.getCommentList(commentListDTO);
+      const result: ListResponse<CommentListResponse> = await commentRepository.getCommentList(commentListDTO, COMMENT_TARGET.IMAGE);
 
-      expect(result.list).toStrictEqual([]);
-      expect(result.totalElements).toBe(0);
+      expect(result.items).toStrictEqual([]);
+      expect(result.totalPages).toBe(0);
+      expect(result.isEmpty).toBeTruthy();
+      expect(result.currentPage).toBe(1);
     });
-
-    it('모든 게시글 번호가 undefined인 경우', async () => {
-      const commentListDTO: CommentListRequestDTO = new CommentListRequestDTO();
-
-      const result: {
-        list: CommentListResponseDTO[],
-        totalElements: number
-      } = await commentRepository.getCommentList(commentListDTO);
-
-      expect(result.list).toStrictEqual([]);
-      expect(result.totalElements).toBe(0);
-    })
   });
 
   describe('postComment', () => {
-    const postDTO: CommentPostRequestDTO = new CommentPostRequestDTO();
-    postDTO.commentContent = 'testPostCommentContent';
+    const postDTO: PostCommentRequest = new PostCommentRequest();
+    postDTO.content = 'testPostCommentContent';
     it('정상 처리. 일반 게시글 기준', async () => {
-      await commentRepository.postComment(postDTO, member.userId, { boardNo: testBoard.boardNo, imageNo: null });
+      await commentRepository.postComment(postDTO, member.id, { boardId: testBoard.id, imageId: null });
 
-      const saveComment: Comment[] = await commentRepository.find({ where: { boardNo: testBoard.boardNo }, order: { 'commentNo': 'DESC' } });
+      const saveComment: Comment[] = await commentRepository.find({ where: { boardId: testBoard.id }, order: { 'id': 'DESC' } });
       const comment: Comment = saveComment[0];
-      expect(comment.commentContent).toBe(postDTO.commentContent);
-      expect(comment.userId).toBe(member.userId);
-      expect(comment.commentGroupNo).toBe(comment.commentNo);
-      expect(comment.commentUpperNo).toBe(`${comment.commentNo}`);
+      expect(comment.content).toBe(postDTO.content);
+      expect(comment.userId).toBe(member.id);
+      expect(comment.groupNo).toBe(comment.id);
+      expect(comment.upperNo).toBe(`${comment.id}`);
+      expect(comment.indent).toBe(0);
     });
 
     it('정상 처리. 이미지 게시글 기준', async () => {
-      await commentRepository.postComment(postDTO, member.userId, { boardNo: null, imageNo: testImageBoard.imageNo });
+      await commentRepository.postComment(postDTO, member.id, { boardId: null, imageId: testImageBoard.id });
 
-      const saveComment: Comment[] = await commentRepository.find({ where: { imageNo: testImageBoard.imageNo }, order: { 'commentNo': 'DESC' } });
+      const saveComment: Comment[] = await commentRepository.find({ where: { imageId: testImageBoard.id }, order: { 'id': 'DESC' } });
       const comment: Comment = saveComment[0];
-      expect(comment.commentContent).toBe(postDTO.commentContent);
-      expect(comment.userId).toBe(member.userId);
-      expect(comment.commentGroupNo).toBe(comment.commentNo);
-      expect(comment.commentUpperNo).toBe(`${comment.commentNo}`);
+      expect(comment.content).toBe(postDTO.content);
+      expect(comment.userId).toBe(member.id);
+      expect(comment.groupNo).toBe(comment.id);
+      expect(comment.upperNo).toBe(`${comment.id}`);
+      expect(comment.indent).toBe(0);
     });
   });
 
   describe('postReplyComment', () => {
-    const getCommentReplyPostDTO = (): CommentPostReplyRequestDTO => {
-      const dto: CommentPostReplyRequestDTO = new CommentPostReplyRequestDTO();
-      dto.commentContent = 'testReplyCommentContent';
-      dto.commentGroupNo = testComment.commentGroupNo;
-      dto.commentIndent = testComment.commentIndent;
-      dto.commentUpperNo = testComment.commentUpperNo;
-
-      return dto;
-    }
+      const replyRequest: CommentPostReplyRequest = new CommentPostReplyRequest();
+      replyRequest.content = 'testReplyCommentContent';
     it('정상 처리. 일반 게시글 기준', async () => {
-      const replyDTO: CommentPostReplyRequestDTO = getCommentReplyPostDTO();
-
       await commentRepository.postReplyComment(
-        replyDTO,
-        member.userId,
-        { boardNo: testBoard.boardNo, imageNo: null }
+        replyRequest,
+        member.id,
+        testComment
       );
 
-      const saveReply: Comment[] = await commentRepository.find({ where: { boardNo: testBoard.boardNo }, order: { 'commentNo': 'DESC' } });
+      const saveReply: Comment[] = await commentRepository.find({ where: { boardId: testBoard.id }, order: { 'id': 'DESC' } });
       const reply: Comment = saveReply[0];
 
-      expect(reply.commentContent).toBe(replyDTO.commentContent);
-      expect(reply.commentGroupNo).toBe(replyDTO.commentGroupNo);
-      expect(reply.commentIndent).toBe(replyDTO.commentIndent + 1);
-      expect(reply.commentUpperNo).toBe(`${replyDTO.commentUpperNo},${reply.commentNo}`);
-    });
-
-    it('정상 처리. 이미지 게시글 기준', async () => {
-      const replyDTO: CommentPostReplyRequestDTO = getCommentReplyPostDTO();
-
-      await commentRepository.postReplyComment(
-        replyDTO,
-        member.userId,
-        { boardNo: null, imageNo: testImageBoard.imageNo }
-      );
-
-      const saveReply: Comment[] = await commentRepository.find({ where: { imageNo: testImageBoard.imageNo }, order: { 'commentNo': 'DESC' } });
-      const reply: Comment = saveReply[0];
-
-      expect(reply.commentContent).toBe(replyDTO.commentContent);
-      expect(reply.commentGroupNo).toBe(replyDTO.commentGroupNo);
-      expect(reply.commentIndent).toBe(replyDTO.commentIndent + 1);
-      expect(reply.commentUpperNo).toBe(`${replyDTO.commentUpperNo},${reply.commentNo}`);
+      expect(reply.content).toBe(replyRequest.content);
+      expect(reply.groupNo).toBe(testComment.groupNo);
+      expect(reply.indent).toBe(testComment.indent + 1);
+      expect(reply.upperNo).toBe(`${testComment.upperNo},${reply.id}`);
+      expect(reply.boardId).toBe(testComment.boardId);
+      expect(reply.imageId).toBe(testComment.imageId);
     });
   });
 });

@@ -8,7 +8,7 @@ import {
   Patch,
   Post,
   Query,
-  Req,
+  Req, UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -16,49 +16,40 @@ import {
   ApiBadRequestResponse,
   ApiBody, ApiForbiddenResponse,
   ApiInternalServerErrorResponse, ApiNotFoundResponse,
-  ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
-  getSchemaPath,
 } from '@nestjs/swagger';
 import { Roles } from '#common/decorators/roles.decorator';
 import { RolesGuard } from '#common/guards/roles.guard';
 import { BoardImagesUploadInterceptor } from '#common/interceptor/board-images-upload.interceptor';
 import { ImageBoardService } from '#imageBoard/services/image-board.service';
 import { PaginationDTO } from '#common/dtos/in/pagination.dto';
-import { ImageBoardListResponseDTO } from '#imageBoard/dtos/out/image-board-list-response.dto';
-import { UserStatusDTO } from '#common/dtos/out/user-status.dto';
-import { UserStatusDTOMapper } from '#common/mapper/user-status.mapper';
+import { ImageBoardListResponse } from '#imageBoard/dtos/out/image-board-list.response.dto';
 import type { Request } from 'express';
-import { createListResponseDTO } from '#common/dtos/out/list-response.dto';
-import { ImageBoardDetailResponseDTO } from '#imageBoard/dtos/out/image-board-detail-response.dto';
-import { createDetailResponseDTO } from '#common/dtos/out/detail-response.dto';
-import { PostImageBoardDTO } from '#imageBoard/dtos/in/post-image-board.dto';
-import { getAuthUserId } from '#common/utils/auth.utils';
+import { ImageBoardDetailResponse } from '#imageBoard/dtos/out/image-board-detail.response.dto';
+import { PostImageBoardRequest } from '#imageBoard/dtos/in/post-image-board.request.dto';
+import { getAuthId, getAuthUserId } from '#common/utils/auth.utils';
 import { ApiBearerCookie } from '#common/decorators/swagger/api-bearer-cookie.decorator';
-import { CustomApiCreatedResponse } from '#common/decorators/swagger/created.decorator';
-import { ImageBoardPatchDataResponseDTO } from '#imageBoard/dtos/out/image-board-patch-data-response.dto';
-import { PatchImageBoardDTO } from '#imageBoard/dtos/in/patch-image-board.dto';
+import { ImageBoardPatchDetailResponse } from '#imageBoard/dtos/out/image-board-patch-detail.response.dto';
+import { PatchImageBoardRequest } from '#imageBoard/dtos/in/patch-image-board.request.dto';
 import { ApiNoContentVoid } from '#common/decorators/swagger/no-content-void.decorator';
-import { ApiImageBoardExtraModels } from '#imageBoard/swagger/decorator/image-board-extra-models.decorator';
 import { ResponseStatusConstants } from '#common/constants/response-status.constants';
 import { ApiAuthExceptionResponse } from '#common/decorators/swagger/api-auth-exception-response.decorator';
 import {
   PatchImageBoardBadRequestExamples,
   PostImageBoardBadRequestExamples,
 } from '#imageBoard/swagger/example/image-board-error.example';
+import { ApiCombinedResponse } from '#common/decorators/swagger/api-response.decorator';
+import { ListResponse } from '#common/dtos/out/list.response.dto';
+import { ApiPrimitiveResponse } from '#common/decorators/swagger/api-primitive-response.decorator';
+import { FILE_TYPE } from '#common/constants/common-file-type.constants';
+import { FileService } from '#src/file/service/file.service';
+import { ImageRenderInterceptor } from '#common/interceptor/image-render.interceptor';
+import { SkipTransform } from '#common/decorators/file/skip-transform.decorator';
 
-const ListResponseDTO = createListResponseDTO(ImageBoardListResponseDTO, 'imageBoard');
-const DetailResponseDTO = createDetailResponseDTO(ImageBoardDetailResponseDTO, 'imageBoardDetail');
-const PatchDetailResponseDTO = createDetailResponseDTO(ImageBoardPatchDataResponseDTO, 'imageBoardPatchDetail');
 
 @ApiTags('imageBoard')
-@ApiImageBoardExtraModels(
-  ListResponseDTO,
-  DetailResponseDTO,
-  PatchDetailResponseDTO
-)
 @Controller('image-board')
 @ApiAuthExceptionResponse()
 @ApiInternalServerErrorResponse({
@@ -72,112 +63,30 @@ export class ImageBoardController {
 
   constructor(
     private readonly imageboardService: ImageBoardService,
+    private readonly fileService: FileService
   ) { }
 
-  /**
-   * @param pageDTO {
-   *   keyword?: string,
-   *   searchType?: string,
-   *   pageNum?: number = 1
-   * } query
-   * @param req {
-   *   user?: {
-   *     userId: string,
-   *     roles: string[]
-   *   }
-   * }
-   *
-   * @returns {
-   *   data: ListResponseDTO<T>{
-   *     content: ImageBoardListResponseDTO [
-   *       {
-   *         imageNo: number,
-   *         imageTitle: string,
-   *         userId: string,
-   *         imageDate: Date,
-   *         imageName: string
-   *       }
-   *     ],
-   *     empty: boolean,
-   *     totalElements: number,
-   *     userStauts: UserStatusDTO {
-   *       loggedIn: boolean,
-   *       uid: string
-   *     }
-   *   }
-   * }
-   */
   @Get('/')
   @HttpCode(200)
   @ApiOperation({ summary: '게시글 목록 조회' })
-  @ApiOkResponse({
-    description: '정상 조회',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(ListResponseDTO) },
-      ]
-    }
-  })
+  @ApiCombinedResponse(ImageBoardListResponse, true)
   async getList(
-    @Query() pageDTO: PaginationDTO,
-    @Req() req: Request
-  ): Promise<InstanceType<typeof ListResponseDTO>>{
-    const boardList: {
-      list: ImageBoardListResponseDTO[],
-      totalElements: number
-    } = await this.imageboardService.getImageBoardListService(pageDTO);
-    const userStatus: UserStatusDTO = UserStatusDTOMapper.createUserStatusByReq(req);
+    @Query() pageDTO: PaginationDTO
+  ): Promise<ListResponse<ImageBoardListResponse>>{
 
-    return new ListResponseDTO(boardList.list, boardList.totalElements, userStatus);
+    return this.imageboardService.getListService(pageDTO);
   }
 
-  /**
-   * @param imageNo
-   * @param req {
-   *   user?: {
-   *     userId: string,
-   *     roles: string[]
-   *   }
-   * }
-   *
-   * @returns {
-   *   data: DetailResponseDTO<T> {
-   *     content: ImageBoardDetailResponseDTO {
-   *       imageNo: number,
-   *       imageTitle: string,
-   *       imageContent: string,
-   *       userId: string,
-   *       imageDate: Date,
-   *       imageData: [
-   *         {
-   *           imageName: string,
-   *           oldName: string,
-   *           imageStep: number
-   *         }
-   *       ]
-   *     },
-   *     userStatus: UserStatusDTO {
-   *       loggedIn: boolean,
-   *       uid: string
-   *     }
-   *   }
-   * }
-   */
-  @Get('/:imageNo')
+  @Get('/:id')
   @HttpCode(200)
   @ApiOperation({ summary: '게시글 상세 조회' })
   @ApiParam({
-    name: 'imageNo',
+    name: 'id',
     required: true,
     description: '게시글 번호',
     type: Number
   })
-  @ApiOkResponse({
-    description: '정상 조회',
-    schema: {
-      $ref: getSchemaPath(DetailResponseDTO)
-    },
-  })
+  @ApiCombinedResponse(ImageBoardDetailResponse)
   @ApiNotFoundResponse({
     description: '데이터 없음',
     example: {
@@ -186,40 +95,11 @@ export class ImageBoardController {
     }
   })
   async getDetail(
-    @Param('imageNo', ParseIntPipe) imageNo: number,
-    @Req() req: Request
-  ): Promise<InstanceType<typeof DetailResponseDTO>>{
-    const boardDetail: ImageBoardDetailResponseDTO = await this.imageboardService.getImageBoardDetailService(imageNo);
-    const userStatus: UserStatusDTO = UserStatusDTOMapper.createUserStatusByReq(req);
-
-    return new DetailResponseDTO(boardDetail, userStatus);
+    @Param('id', ParseIntPipe) id: number
+  ): Promise<ImageBoardDetailResponse>{
+    return await this.imageboardService.getDetailService(id);
   }
 
-  /**
-   * @param postDTO {
-   *   imageTitle: string,
-   *   imageContent: string,
-   * } body
-   * @param req {
-   *   user?: {
-   *     userId: string,
-   *     roles: string[]
-   *   },
-   *   files: File [
-   *     {
-   *       filename: string,
-   *       originalname: string,
-   *       ...
-   *     }
-   *   ] ( min 1, limit 5, mimetype: image/* )
-   * }
-   *
-   * @returns {
-   *   data: {
-   *     imageNo: number
-   *   }
-   * }
-   */
   @Roles('ROLE_MEMBER')
   @UseGuards(RolesGuard)
   @Post('/')
@@ -227,13 +107,8 @@ export class ImageBoardController {
   @HttpCode(201)
   @ApiBearerCookie()
   @ApiOperation({ summary: '게시글 작성' })
-  @ApiBody({ type: PostImageBoardDTO })
-  @CustomApiCreatedResponse(
-    '게시글 작성 완료',
-    {
-      imageNo: 1
-    }
-  )
+  @ApiBody({ type: PostImageBoardRequest })
+  @ApiPrimitiveResponse('number', 201)
   @ApiBadRequestResponse({
     description: '요청 데이터 오류',
     content: {
@@ -243,54 +118,28 @@ export class ImageBoardController {
     }
   })
   async postImageBoard(
-    @Body()postDTO: PostImageBoardDTO,
+    @Body() postDTO: PostImageBoardRequest,
+    @UploadedFiles() files: Express.Multer.File[],
     @Req() req: Request
-  ): Promise<{ imageNo: number }>{
-    return await this.imageboardService.postImageBoardService(postDTO, req);
+  ): Promise<number>{
+    const userId: number = getAuthId(req);
+
+    return await this.imageboardService.postBoardService(postDTO, files, userId);
   }
 
-  /**
-   * @param imageNo
-   * @param req {
-   *   user?: {
-   *     userId: string,
-   *     roles: string[]
-   *   }
-   * }
-   *
-   * @returns {
-   *   data: DetailResponseDTO<T> {
-   *     content: ImageBoardPatchDataResponseDTO {
-   *       imageNo: number,
-   *       imageTitle: string,
-   *       imageContent: string,
-   *       imageData: String[{ imageName: string }]
-   *     },
-   *     userStatus: UserStatusDTO {
-   *       loggedIn: boolean,
-   *       uid: string
-   *     }
-   *   }
-   * }
-   */
   @Roles('ROLE_MEMBER')
   @UseGuards(RolesGuard)
-  @Get('/patch-detail/:imageNo')
+  @Get('/patch/detail/:id')
   @HttpCode(200)
   @ApiBearerCookie()
   @ApiOperation({ summary: '게시글 수정 데이터 조회' })
   @ApiParam({
-    name: 'imageNo',
+    name: 'id',
     required: true,
     description: '게시글 번호',
     type: Number
   })
-  @ApiOkResponse({
-    description: '정상 조회',
-    schema: {
-      $ref: getSchemaPath(PatchDetailResponseDTO)
-    }
-  })
+  @ApiCombinedResponse(ImageBoardPatchDetailResponse)
   @ApiNotFoundResponse({
     description: '데이터 없음',
     example: {
@@ -306,65 +155,29 @@ export class ImageBoardController {
     }
   })
   async getPatchDetailData(
-    @Param('imageNo', ParseIntPipe) imageNo: number,
+    @Param('id', ParseIntPipe) id: number,
     @Req() req: Request
-  ): Promise<InstanceType<typeof PatchDetailResponseDTO>> {
+  ): Promise<ImageBoardPatchDetailResponse> {
     const userId: string = getAuthUserId(req);
-    const patchDetail: ImageBoardPatchDataResponseDTO = await this.imageboardService.getPatchDataService(imageNo, userId);
-    const userStatus: UserStatusDTO = UserStatusDTOMapper.createUserStatusByUserId(userId);
 
-    return new PatchDetailResponseDTO(patchDetail, userStatus);
+    return await this.imageboardService.getPatchDataService(id, userId);
   }
 
-  /**
-   *
-   * @param imageNo
-   * @param patchDTO {
-   *   imageTitle: string,
-   *   imageContent: string,
-   *   deleteFiles?: string[{imageName}]
-   * } body
-   *
-   * @param req {
-   *   user?: {
-   *     userId: string,
-   *     roles: string[]
-   *   },
-   *   files: File [
-   *     {
-   *       filename: string,
-   *       originalname: string,
-   *       ...
-   *     }
-   *   ] ( min 1, limit 5, mimetype: image/* )
-   * }
-   *
-   * @returns {
-   *   data: {
-   *     imageNo: number
-   *   }
-   * }
-   */
   @Roles('ROLE_MEMBER')
   @UseGuards(RolesGuard)
-  @Patch('/:imageNo')
+  @Patch('/:id')
   @UseInterceptors(BoardImagesUploadInterceptor)
   @HttpCode(200)
   @ApiBearerCookie()
   @ApiOperation({ summary: '게시글 수정' })
   @ApiParam({
-    name: 'imageNo',
+    name: 'id',
     required: true,
     description: '게시글 번호',
     type: Number
   })
-  @ApiBody({ type: PatchImageBoardDTO })
-  @ApiOkResponse({
-    description: '게시글 수정 완료',
-    schema: {
-      example: { boardNo: 1 }
-    }
-  })
+  @ApiBody({ type: PatchImageBoardRequest })
+  @ApiPrimitiveResponse('number', 200)
   @ApiNotFoundResponse({
     description: '데이터 없음',
     example: {
@@ -388,34 +201,24 @@ export class ImageBoardController {
     }
   })
   async patchImageBoard(
-    @Param('imageNo', ParseIntPipe) imageNo: number,
-    @Body() patchDTO: PatchImageBoardDTO,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() patchDTO: PatchImageBoardRequest,
+    @UploadedFiles() files: Express.Multer.File[],
     @Req() req: Request
-  ): Promise<{ imageNo: number }> {
-    return await this.imageboardService.patchImageBoardService(imageNo, patchDTO, req);
+  ): Promise<number> {
+    const userId: number = getAuthId(req);
+
+    return await this.imageboardService.patchImageBoardService(id, patchDTO, files, userId);
   }
 
-  /**
-   * @param imageNo
-   * @param req {
-   *   user?: {
-   *     userId: string,
-   *     roles: string[]
-   *   }
-   * }
-   *
-   * @returns{
-   *   status: 204
-   * }
-   */
   @Roles('ROLE_MEMBER')
   @UseGuards(RolesGuard)
-  @Delete('/:imageNo')
+  @Delete('/:id')
   @HttpCode(204)
   @ApiBearerCookie()
   @ApiOperation({ summary: '게시글 삭제' })
   @ApiParam({
-    name: 'imageNo',
+    name: 'id',
     required: true,
     description: '게시글 번호',
     type: Number
@@ -436,11 +239,21 @@ export class ImageBoardController {
     }
   })
   async deleteImageBoard(
-    @Param('imageNo', ParseIntPipe) imageNo: number,
+    @Param('id', ParseIntPipe) id: number,
     @Req() req: Request
   ): Promise<void>{
-    const userId: string = getAuthUserId(req);
+    const userId: number = getAuthId(req);
 
-    await this.imageboardService.deleteImageBoard(imageNo, userId);
+    await this.imageboardService.deleteImageBoard(id, userId);
+  }
+
+  @Get('/display/:imageName')
+  @SkipTransform()
+  @UseInterceptors(ImageRenderInterceptor)
+  async getDisplayImage(
+    @Param('imageName') imageName: string
+  ) {
+
+    return await this.fileService.displayService(imageName, FILE_TYPE.IMAGE_BOARD);
   }
 }

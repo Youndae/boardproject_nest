@@ -1,4 +1,4 @@
-import { definedMessage, lengthMessage, notEmptyMessage } from '#common/constants/common-validate-message.constans';
+import { definedMessage, lengthMessage, notEmptyMessage } from '#common/constants/common-validate-message.constants';
 
 export const imageTitleDefinedMessage: string = definedMessage('imageTitle');
 export const imageTitleLengthMessage: string = lengthMessage('imageTitle', 2);

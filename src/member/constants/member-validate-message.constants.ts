@@ -1,4 +1,4 @@
-import { definedMessage, lengthMessage, notEmptyMessage } from '#common/constants/common-validate-message.constans';
+import { definedMessage, lengthMessage, notEmptyMessage } from '#common/constants/common-validate-message.constants';
 
 export const userIdDefinedMessage: string = definedMessage('userId');
 export const userIdNotEmptyMessage: string = notEmptyMessage('userId');

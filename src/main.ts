@@ -1,4 +1,4 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ExceptionsFilter } from '#common/filters/exceptions.filter';
 import { LoggerService } from '#config/logger/logger.service';
@@ -8,6 +8,7 @@ import cookieParser from 'cookie-parser';
 import { ConfigService } from '@nestjs/config';
 import { initializeTransactionalContext } from 'typeorm-transactional';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { TransformInterceptor } from '#common/interceptor/transform.interceptor';
 
 
 async function bootstrap() {
@@ -17,11 +18,18 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { logger: false });
 
   // 전역 prefix 사용시
-  // const globalPrefix = 'api';
-  // app.setGlobalPrefix(globalPrefix);
+  const globalPrefix = 'api';
+  app.setGlobalPrefix(globalPrefix, {
+    exclude: ['oauth2/(.*)']
+  });
+
+  // responseInterceptor
+  const reflector = app.get(Reflector);
+  app.useGlobalInterceptors(new TransformInterceptor(reflector));
 
   // DI로 LoggerService
   const logger = app.get(LoggerService);
+  app.useLogger(logger);
   const config = app.get(ConfigService);
 
   app.use(helmet());
@@ -36,7 +44,7 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
       transform: true,
       // transformOptions: { enableImplicitConversion: true },
-      // whitelist: true,
+      whitelist: true,
     })
   )
 

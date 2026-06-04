@@ -21,10 +21,26 @@ export const ResponseStatusConstants = Object.freeze({
   NOT_FOUND: { CODE: HttpStatus.NOT_FOUND, MESSAGE: 'NOT_FOUND' },
   METHOD_NOT_ALLOWED: { CODE: HttpStatus.METHOD_NOT_ALLOWED, MESSAGE: 'METHOD_NOT_ALLOWED' },
   CONFLICT: { CODE: HttpStatus.CONFLICT, MESSAGE: 'CONFLICT' },
+  USER_ALREADY_EXISTS: { CODE: HttpStatus.CONFLICT, MESSAGE: 'USER_ALREADY_EXISTS'},
   UNPROCESSABLE_ENTITY: { CODE: HttpStatus.UNPROCESSABLE_ENTITY, MESSAGE: 'UNPROCESSABLE_ENTITY' },
 
   // 5xx
   INTERNAL_SERVER_ERROR: { CODE: HttpStatus.INTERNAL_SERVER_ERROR, MESSAGE: 'INTERNAL_SERVER_ERROR' },
   FILE_UPLOAD_ERROR: { CODE: HttpStatus.INTERNAL_SERVER_ERROR, MESSAGE: 'FILE_UPLOAD_ERROR' },
   BAD_GATEWAY: { CODE: HttpStatus.BAD_GATEWAY, MESSAGE: 'BAD_GATEWAY' },
-})
+});
+
+export const UserAlreadyExistsConstants = {
+  USER_ID: {
+    forClient: 'USERID',
+    column: 'user_id',
+    message: '이미 사용중인 아이디입니다.'
+  },
+  NICKNAME: {
+    forClient: 'NICKNAME',
+    column: 'nickname',
+    message: '이미 사용중인 닉네임입니다.'
+  }
+} as const;
+
+export type UserAlreadyExistsType = (typeof UserAlreadyExistsConstants)[keyof typeof UserAlreadyExistsConstants];

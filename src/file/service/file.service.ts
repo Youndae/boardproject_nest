@@ -4,23 +4,27 @@ import fs from 'fs';
 import { appendSizeSuffix, getBaseNameAndExt } from '#common/utils/file.util';
 import { LoggerService } from '#config/logger/logger.service';
 import { ConfigService } from '@nestjs/config';
-import { BadRequestException } from '#common/exceptions/bad-request.exception';
 import path from 'path';
 import { NotFoundException } from '#common/exceptions/not-found.exception';
+import { FileType } from '#common/constants/common-file-type.constants';
+import { InternalServerErrorException } from '#common/exceptions/internal-server-error.exception';
 
 @Injectable()
 export class FileService {
+  private readonly logger: LoggerService;
+
   constructor(
-    private readonly logger: LoggerService,
+    private readonly originalLogger: LoggerService,
     private readonly configService: ConfigService
   ) {
+    this.logger = this.originalLogger.setContext(FileService.name);
   }
    async deleteFile(filePath: string) {
      try {
        await fsPromises.unlink(filePath);
      }catch(err) {
-       this.logger.error('File deletion error: ', err);
-       this.logger.error('failed delete file name : ', filePath);
+       this.logger.error('deleteFile :: File deletion error: ', err);
+       this.logger.error('deleteFile :: failed delete file name : ', filePath);
      }
   }
 
@@ -40,56 +44,48 @@ export class FileService {
     deleteFileNames.forEach(name => this.deleteFile(`${destDir}/${name}`));
   }
 
-  async getImageDisplayService(imageName: string): Promise<{
+  async displayService(imageName: string, type: FileType): Promise<{
     path: string,
     contentType: string
   }> {
-    const profilePath: string = this.configService.get<string>('PROFILE_FILE_PATH') ?? '';
-    const boardPath: string = this.configService.get<string>('BOARD_FILE_PATH') ?? '';
+    const baseDir: string | undefined = this.configService.get<string>(`${type}_FILE_PATH`);
 
-    const profilePrefix = 'profile/';
-    const boardPrefix = 'board/';
-
-    let filePrefix: string = '';
-    let imagePath: string = '';
-
-    if(imageName.startsWith(profilePrefix)){
-      filePrefix = profilePrefix;
-      imagePath = profilePath;
-    }else if(imageName.startsWith(boardPrefix)){
-      filePrefix = boardPrefix;
-      imagePath = boardPath;
-    }else{
-      this.logger.error('display image error. param prefix is wrong. imageName : ', imageName);
-      throw new BadRequestException();
+    if(!baseDir){
+      this.logger.error(
+        'displayService :: wrong file type',
+        { type }
+      );
+      throw new InternalServerErrorException();
     }
 
-    const imageFilename: string = imageName.replace(filePrefix, '');
-    const filePath: string = path.join(imagePath, imageFilename);
+    const imagePath: string = path.join(baseDir, imageName);
 
-    await fsPromises.access(filePath, fs.constants.F_OK)
+    await fsPromises.access(imagePath, fs.constants.F_OK)
       .catch(() => {
-        this.logger.warn('display image error. file not found. imageName : ', imageName);
+        this.logger.warn('displayService :: file not found', { imageName });
         throw new NotFoundException();
       });
 
-    const { ext } = getBaseNameAndExt(imageFilename);
-    let contentType: string = 'application/octet-stream';
-
-    if(ext === '.png')
-      contentType = 'image/png';
-    else if(ext === '.jpg' || ext === '.jpeg')
-      contentType = 'image/jpeg';
-    else if(ext === '.gif')
-      contentType = 'image/gif';
-    else if(ext === '.bmp')
-      contentType = 'image/bmp';
-    else if(ext === '.webp')
-      contentType = 'image/webp';
+    // jpeg 고정이지만 추후 확장을 위해 우선 체크.
+    const { ext } = getBaseNameAndExt(imageName);
+    const contentType: string = this.getContentType(ext.toLowerCase());
 
     return {
-      path: filePath,
-      contentType: contentType,
+      path: imagePath,
+      contentType
     }
+  }
+
+  private getContentType(ext: string): string {
+    const mimeMap: Record<string, string> = {
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif',
+      '.bmp': 'image/bmp',
+      '.webp': 'image/webp',
+    };
+
+    return mimeMap[ext] || 'application/octet-stream';
   }
 }

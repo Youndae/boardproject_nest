@@ -7,10 +7,14 @@ import { RequestUserType } from '#common/types/requestUser.type';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
+  private readonly logger: LoggerService;
+
   constructor(
     private readonly reflector: Reflector,
-    private readonly logger: LoggerService
-  ) { }
+    private readonly originalLogger: LoggerService
+  ) {
+    this.logger = this.originalLogger.setContext(RolesGuard.name);
+  }
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
     const requiredRoles = this.reflector.getAllAndOverride<string[]>(
@@ -29,14 +33,14 @@ export class RolesGuard implements CanActivate {
     const user: RequestUserType | undefined = req.user;
 
     if(!user || !user.userId || !user.roles) {
-      this.logger.error('AuthGuard :: Anonymous User Request.');
+      this.logger.error('Anonymous User Request.');
       throw new ForbiddenException();
     }
 
     const hasRole = requiredRoles.some(role => user.roles.includes(role));
 
     if(!hasRole) {
-      this.logger.error('AuthGuard :: FORBIDDEN Role. ', { user });
+      this.logger.error('FORBIDDEN Role. ', { user });
       throw new ForbiddenException();
     }
 

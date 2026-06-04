@@ -12,23 +12,19 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CommentService } from '#comment/services/comment.service';
-import { CommentListRequestDTO } from '#comment/dtos/in/comment-list-request.dto';
+import { CommentListRequest } from '#comment/dtos/in/comment-list.request.dto';
 import type { Request } from 'express';
-import { createListResponseDTO } from '#common/dtos/out/list-response.dto';
-import { CommentListResponseDTO } from '#comment/dtos/out/comment-list-response.dto';
-import { UserStatusDTO } from '#common/dtos/out/user-status.dto';
-import { UserStatusDTOMapper } from '#common/mapper/user-status.mapper';
-import { CommentPostRequestDTO } from '#comment/dtos/in/comment-post-request.dto';
-import { getAuthUserId } from '#common/utils/auth.utils';
-import { CommentPostReplyRequestDTO } from '#comment/dtos/in/comment-post-reply-request.dto';
+import { ListResponse } from '#common/dtos/out/list.response.dto';
+import { CommentListResponse } from '#comment/dtos/out/comment-list.response.dto';
+import { PostCommentRequest } from '#comment/dtos/in/post-comment.request.dto';
+import { getAuthId } from '#common/utils/auth.utils';
+import { CommentPostReplyRequest } from '#comment/dtos/in/comment-post-reply.request.dto';
 import {
   ApiBadRequestResponse,
-  ApiExtraModels, ApiInternalServerErrorResponse,
-  ApiOkResponse,
+  ApiInternalServerErrorResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
-  getSchemaPath,
 } from '@nestjs/swagger';
 import { CustomApiCreatedResponse } from '#common/decorators/swagger/created.decorator';
 import { Roles } from '#common/decorators/roles.decorator';
@@ -40,15 +36,10 @@ import {
   PostCommentReplyBadRequestExamples,
 } from '#comment/swagger/examples/comment-error.example';
 import { ResponseStatusConstants } from '#common/constants/response-status.constants';
-
-const ListResponseDTO = createListResponseDTO(CommentListResponseDTO, 'comment');
+import { ApiCombinedResponse } from '#common/decorators/swagger/api-response.decorator';
+import { COMMENT_TARGET } from '#comment/constants/comment-list-type.constants';
 
 @ApiTags('comments')
-@ApiExtraModels(
-  ListResponseDTO,
-  CommentListResponseDTO,
-  UserStatusDTO
-)
 @Controller('comment')
 @ApiInternalServerErrorResponse({
   description: '서버 오류',
@@ -62,149 +53,36 @@ export class CommentController {
     private readonly commentService: CommentService
   ) {}
 
-  /**
-   * @param commentListDTO {
-   *   boardNo?: number,
-   *   imageNo?: number,
-   *   pageNum?: number
-   * } query
-   * @param req {
-   *   user?: {
-   *     userId: string,
-   *     roles: string[]
-   *   }
-   * }
-   *
-   * @returns {
-   *   status: 200,
-   *   data: {
-   *     content: CommentListResponseDTO [
-   *       {
-   *         commentNo: number,
-   *         userId: string,
-   *         commentDate: Date,
-   *         commentContent: string,
-   *         commentGroupNo: number,
-   *         commentIndent: number,
-   *         commentUpperNo: string
-   *       },
-   *     ],
-   *     empty: boolean,
-   *     totalElements: number,
-   *     userStatus: UserStatusDTO {
-   *       loggedIn: boolean,
-   *       uid: string
-   *     }
-   *   }
-   * }
-   */
   @Get('/board')
   @HttpCode(200)
   @ApiOperation({ summary: '일반 게시글 댓글 목록 조회' })
-  @ApiOkResponse({
-    description: '정상 조회',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(ListResponseDTO) }
-      ]
-    }
-  })
+  @ApiCombinedResponse(CommentListResponse, true)
   async getBoardCommentList(
-    @Query() commentListDTO: CommentListRequestDTO,
-    @Req() req: Request
-  ): Promise<InstanceType<typeof ListResponseDTO>> {
-    const commentList: {
-      list: CommentListResponseDTO[],
-      totalElements: number
-    } = await this.commentService.getCommentListService(commentListDTO);
-    const userStatus: UserStatusDTO = UserStatusDTOMapper.createUserStatusByReq(req);
-
-    return new ListResponseDTO(commentList.list, commentList.totalElements, userStatus);
+    @Query() commentListDTO: CommentListRequest
+  ): Promise<ListResponse<CommentListResponse>> {
+    
+    return this.commentService.getCommentListService(commentListDTO, COMMENT_TARGET.BOARD);
   }
 
-  /**
-   * @param commentListDTO {
-   *   boardNo?: number,
-   *   imageNo?: number,
-   *   pageNum?: number
-   * } query
-   * @param req {
-   *   user?: {
-   *     userId: string,
-   *     roles: string[]
-   *   }
-   * }
-   *
-   * @returns {
-   *   status: 200,
-   *   data: {
-   *     content: CommentListResponseDTO [
-   *       {
-   *         commentNo: number,
-   *         userId: string,
-   *         commentDate: Date,
-   *         commentContent: string,
-   *         commentGroupNo: number,
-   *         commentIndent: number,
-   *         commentUpperNo: string
-   *       },
-   *     ],
-   *     empty: boolean,
-   *     totalElements: number,
-   *     userStatus: UserStatusDTO {
-   *       loggedIn: boolean,
-   *       uid: string
-   *     }
-   *   }
-   * }
-   */
-  @Get('/image')
+  @Get('/image-board')
   @HttpCode(200)
   @ApiOperation({ summary: '이미지 게시글 댓글 목록 조회' })
-  @ApiOkResponse({
-    description: '정상 조회',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(ListResponseDTO) }
-      ]
-    }
-  })
+  @ApiCombinedResponse(CommentListResponse, true)
   async getImageBoardCommentList(
-    @Query() commentListDTO: CommentListRequestDTO,
-    @Req() req: Request
-  ): Promise<InstanceType<typeof ListResponseDTO>> {
-    const commentList: {
-      list: CommentListResponseDTO[],
-      totalElements: number
-    } = await this.commentService.getCommentListService(commentListDTO);
-    const userStatus: UserStatusDTO = UserStatusDTOMapper.createUserStatusByReq(req);
+    @Query() commentListDTO: CommentListRequest
+  ): Promise<ListResponse<CommentListResponse>> {
 
-    return new ListResponseDTO(commentList.list, commentList.totalElements, userStatus);
+    return this.commentService.getCommentListService(commentListDTO, COMMENT_TARGET.IMAGE);
   }
 
-  /**
-   *
-   * @param postDTO { commentContent: string } body
-   * @param req {
-   *   user?: {
-   *     userId: string,
-   *     roles: string[]
-   *   }
-   * }
-   * @param boardNo
-   *
-   * @returns {
-   *   status 201
-   * }
-   */
   @Roles('ROLE_MEMBER')
   @UseGuards(RolesGuard)
-  @Post('/board/:boardNo')
+  @Post('/board/:targetBoardId')
   @HttpCode(201)
   @ApiBearerCookie()
   @ApiOperation({ summary: '일반 게시글 댓글 작성' })
   @ApiParam({
-    name: 'boardNo',
+    name: 'targetBoardId',
     required: true,
     description: '일반 게시글 번호',
     type: Number
@@ -222,39 +100,23 @@ export class CommentController {
     }
   })
   async postBoardComment(
-    @Body() postDTO: CommentPostRequestDTO,
+    @Body() postDTO: PostCommentRequest,
     @Req() req: Request,
-    @Param('boardNo', ParseIntPipe) boardNo: number
+    @Param('targetBoardId', ParseIntPipe) targetBoardId: number
   ): Promise<void> {
-    const userId: string = getAuthUserId(req);
+    const userId: number = getAuthId(req);
 
-    await this.commentService.postCommentService(postDTO, userId, { boardNo });
+    await this.commentService.postCommentService(postDTO, userId, { boardId: targetBoardId });
   }
 
-  /**
-   * @param postDTO {
-   *   commentContent: string
-   * } body
-   * @param req {
-   *   user?: {
-   *     userId: string,
-   *     roles: string[]
-   *   }
-   * }
-   * @param imageNo
-   *
-   * @returns {
-   *   status 201
-   * }
-   */
   @Roles('ROLE_MEMBER')
   @UseGuards(RolesGuard)
-  @Post('/image/:imageNo')
+  @Post('/image-board/:targetBoardId')
   @HttpCode(201)
   @ApiBearerCookie()
   @ApiOperation({ summary: '이미지 게시글 댓글 작성' })
   @ApiParam({
-    name: 'imageNo',
+    name: 'targetBoardId',
     required: true,
     description: '이미지 게시글 번호',
     type: Number
@@ -272,31 +134,18 @@ export class CommentController {
     }
   })
   async postImageBoardComment(
-    @Body() postDTO: CommentPostRequestDTO,
+    @Body() postDTO: PostCommentRequest,
     @Req() req: Request,
-    @Param('imageNo', ParseIntPipe) imageNo: number
+    @Param('targetBoardId', ParseIntPipe) targetBoardId: number
   ): Promise<void> {
-    const userId: string = getAuthUserId(req);
+    const userId: number = getAuthId(req);
 
-    await this.commentService.postCommentService(postDTO, userId, { imageNo });
+    await this.commentService.postCommentService(postDTO, userId, { imageId: targetBoardId });
   }
 
-  /**
-   * @param commentNo
-   * @param req {
-   *   user?: {
-   *     userId: string,
-   *     roles: string[]
-   *   }
-   * }
-   *
-   * @returns {
-   *   status: 204
-   * }
-   */
   @Roles('ROLE_MEMBER')
   @UseGuards(RolesGuard)
-  @Delete('/:commentNo')
+  @Delete('/:id')
   @HttpCode(204)
   @ApiBearerCookie()
   @ApiOperation({ summary: '댓글 삭제' })
@@ -308,43 +157,24 @@ export class CommentController {
   })
   @ApiNoContentVoid('삭제 완료')
   async deleteComment(
-    @Param('commentNo', ParseIntPipe) commentNo: number,
+    @Param('id', ParseIntPipe) id: number,
     @Req() req: Request
   ): Promise<void> {
-    const userId: string = getAuthUserId(req);
+    const userId: number = getAuthId(req);
 
-    await this.commentService.deleteCommentService(commentNo, userId);
+    await this.commentService.deleteCommentService(id, userId);
   }
 
-  /**
-   * @param postReplyDTO {
-   *   commentContent: string,
-   *   commentGroupNo: number,
-   *   commentIndent: number,
-   *   commentUpperNo: string
-   * } body
-   * @param req {
-   *   user?: {
-   *     userId: string,
-   *     roles: string[]
-   *   }
-   * }
-   * @param boardNo
-   *
-   * @returns {
-   *   status: 201
-   * }
-   */
   @Roles('ROLE_MEMBER')
   @UseGuards(RolesGuard)
-  @Post('/board/:boardNo/reply')
+  @Post('/:id/reply')
   @HttpCode(201)
   @ApiBearerCookie()
-  @ApiOperation({ summary: '일반 게시글 댓글 답변 작성' })
+  @ApiOperation({ summary: '댓글 답변 작성' })
   @ApiParam({
-    name: 'boardNo',
+    name: 'id',
     required: true,
-    description: '일반 게시글 번호',
+    description: '원본 댓글 번호',
     type: Number
   })
   @CustomApiCreatedResponse(
@@ -359,66 +189,14 @@ export class CommentController {
       }
     }
   })
-  async postReplyBoardComment(
-    @Body() postReplyDTO: CommentPostReplyRequestDTO,
+  async postCommentReply(
+    @Body() postReplyDTO: CommentPostReplyRequest,
     @Req() req: Request,
-    @Param('boardNo', ParseIntPipe) boardNo: number
+    @Param('id', ParseIntPipe) id: number
   ): Promise<void> {
-    const userId: string = getAuthUserId(req);
+    const userId: number = getAuthId(req);
 
-    await this.commentService.postReplyService(postReplyDTO, userId, { boardNo });
+    await this.commentService.postReplyService(postReplyDTO, id, userId);
   }
 
-  /**
-   * @param postReplyDTO {
-   *   commentContent: string,
-   *   commentGroupNo: number,
-   *   commentIndent: number,
-   *   commentUpperNo: string
-   * } body
-   * @param req {
-   *   user?: {
-   *     userId: string,
-   *     roles: string[]
-   *   }
-   * }
-   * @param imageNo
-   *
-   * @returns {
-   *   status: 201
-   * }
-   */
-  @Roles('ROLE_MEMBER')
-  @UseGuards(RolesGuard)
-  @Post('/image/:imageNo/reply')
-  @HttpCode(201)
-  @ApiBearerCookie()
-  @ApiOperation({ summary: '이미지 게시글 댓글 답변 작성' })
-  @ApiParam({
-    name: 'imageNo',
-    required: true,
-    description: '이미지 게시글 번호',
-    type: Number
-  })
-  @CustomApiCreatedResponse(
-    '작성 완료',
-    {}
-  )
-  @ApiBadRequestResponse({
-    description: '요청 데이터 오류',
-    content: {
-      'application/json': {
-        examples: PostCommentReplyBadRequestExamples
-      }
-    }
-  })
-  async postReplyImageBoardComment(
-    @Body() postReplyDTO: CommentPostReplyRequestDTO,
-    @Req() req: Request,
-    @Param('imageNo', ParseIntPipe) imageNo: number
-  ): Promise<void> {
-    const userId: string = getAuthUserId(req);
-
-    await this.commentService.postReplyService(postReplyDTO, userId, { imageNo });
-  }
 }

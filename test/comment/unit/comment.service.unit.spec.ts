@@ -3,7 +3,14 @@ import { CommentRepository } from '#comment/repositories/comment.repository';
 import { Test, TestingModule } from '@nestjs/testing';
 import { LoggerService } from '#config/logger/logger.service';
 import { Comment } from '#comment/entities/comment.entity';
-import { CommentListRequestDTO } from '#comment/dtos/in/comment-list-request.dto';
+import { PostCommentRequest } from '#comment/dtos/in/post-comment.request.dto';
+import { BadRequestException } from '#common/exceptions/bad-request.exception';
+import { AccessDeniedException } from '#common/exceptions/access-denied.exception';
+import { CommentPostReplyRequest } from '#comment/dtos/in/comment-post-reply.request.dto';
+
+jest.mock('typeorm-transactional', () => ({
+  Transactional: () => (target: any, key: string, descriptor: PropertyDescriptor) => descriptor,
+}))
 
 describe('commentService unitTest', () => {
   let commentService: CommentService;
@@ -13,14 +20,27 @@ describe('commentService unitTest', () => {
     commentRepository = {
       findOne: jest.fn(),
       delete: jest.fn(),
-      getCommentList: jest.fn()
+      getCommentList: jest.fn(),
+      postComment: jest.fn(),
+      postReplyComment: jest.fn(),
+      findReplyTargetCommentById: jest.fn(),
+      findWriterById: jest.fn(),
+      deleteById: jest.fn(),
     };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       providers: [
         CommentService,
         { provide: CommentRepository, useValue: commentRepository },
-        { provide: LoggerService, useValue: { info: jest.fn(), error: jest.fn() } }
+        {
+          provide: LoggerService,
+          useValue: {
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+            setContext: jest.fn().mockReturnThis()
+          },
+        },
       ]
     })
       .compile();
@@ -29,80 +49,62 @@ describe('commentService unitTest', () => {
     jest.clearAllMocks();
   })
 
-  describe('getCommentListService', () => {
-    it('게시글 번호가 모두 undefined인 경우', async () => {
-      const listDTO: CommentListRequestDTO = new CommentListRequestDTO();
-
-      await expect(commentService.getCommentListService(listDTO))
+  describe('postCommentService', () => {
+    const postDTO: PostCommentRequest = new PostCommentRequest();
+    postDTO.content = 'testComment';
+    it('boardId, imageId가 모두 존재하는 경우', async () => {
+      await expect(commentService.postCommentService(postDTO, 1, { boardId: 1, imageId: 1}))
         .rejects
-        .toThrow('BAD_REQUEST');
+        .toThrow(BadRequestException);
 
-      expect(commentRepository.getCommentList).not.toHaveBeenCalled();
-    });
+      expect(commentRepository.postComment).not.toHaveBeenCalled();
+    })
 
-    it('게시글 번호가 모두 존재하는 경우', async () => {
-      const listDTO: CommentListRequestDTO = new CommentListRequestDTO();
-      listDTO.imageNo = 1;
-      listDTO.boardNo = 1;
-
-      await expect(commentService.getCommentListService(listDTO))
+    it('boardId, imageId가 모두 존재하지 않는 경우', async () => {
+      await expect(commentService.postCommentService(postDTO, 1, {}))
         .rejects
-        .toThrow('BAD_REQUEST');
+        .toThrow(BadRequestException);
 
-      expect(commentRepository.getCommentList).not.toHaveBeenCalled();
-    });
-  });
+      expect(commentRepository.postComment).not.toHaveBeenCalled();
+    })
+  })
 
   describe('deleteCommentService', () => {
-    it('정상 처리', async () => {
-      const comment: Comment = new Comment();
-      comment.commentNo = 1;
-      comment.boardNo = 1;
-      comment.imageNo = null;
-      comment.userId = 'tester';
-      comment.commentContent = 'testCommentContent';
-      comment.commentDate = new Date();
-      comment.commentGroupNo = 1;
-      comment.commentUpperNo = '1';
-      comment.commentIndent = 1;
-      (commentRepository.findOne as jest.Mock)
-        .mockResolvedValue(comment);
-
-      await commentService.deleteCommentService(comment.commentNo, comment.userId);
-
-      expect(commentRepository.delete).toHaveBeenCalled();
-    });
-
     it('데이터가 없는 경우', async () => {
-      (commentRepository.findOne as jest.Mock)
-        .mockResolvedValue(null);
+      commentRepository.findWriterById?.mockResolvedValue(null);
 
-      await expect(commentService.deleteCommentService(1, 'tester'))
+      await expect(commentService.deleteCommentService(1, 1))
         .rejects
-        .toThrow('NOT_FOUND');
+        .toThrow(BadRequestException);
 
       expect(commentRepository.delete).not.toHaveBeenCalled();
     });
 
     it('작성자가 일치하지 않는 경우', async () => {
       const comment: Comment = new Comment();
-      comment.commentNo = 1;
-      comment.boardNo = 1;
-      comment.imageNo = null;
-      comment.userId = 'tester';
-      comment.commentContent = 'testCommentContent';
-      comment.commentDate = new Date();
-      comment.commentGroupNo = 1;
-      comment.commentUpperNo = '1';
-      comment.commentIndent = 1;
-      (commentRepository.findOne as jest.Mock)
-        .mockResolvedValue(comment);
+      comment.userId = 2;
 
-      await expect(commentService.deleteCommentService(comment.commentNo, 'noneUser'))
+      commentRepository.findWriterById?.mockResolvedValue(comment);
+
+      await expect(commentService.deleteCommentService(comment.id, 1))
         .rejects
-        .toThrow('ACCESS_DENIED');
+        .toThrow(AccessDeniedException);
 
       expect(commentRepository.delete).not.toHaveBeenCalled();
     })
   });
+
+  describe('postReplyService', () => {
+    it('상위 댓글 데이터가 없는 경우', async () => {
+      commentRepository.findReplyTargetCommentById?.mockResolvedValue(null);
+      const replyDTO: CommentPostReplyRequest = new CommentPostReplyRequest();
+      replyDTO.content = 'testReplyContent';
+
+      await expect(commentService.postReplyService(replyDTO, 1, 1))
+        .rejects
+        .toThrow(BadRequestException);
+
+      expect(commentRepository.postReplyComment).not.toHaveBeenCalled();
+    })
+  })
 });

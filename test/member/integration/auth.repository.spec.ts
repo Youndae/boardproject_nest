@@ -8,6 +8,7 @@ import { initializeTransactionalContext } from 'typeorm-transactional';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TestDatabaseModule } from '../../module/testDatabase.module';
 import { MemberModule } from '#member/member.module';
+import { MemberAuthInfo } from '#common/dtos/business/member-auth-info.dto';
 
 describe('authRepository', () => {
   let memberRepository: MemberRepository;
@@ -47,39 +48,41 @@ describe('authRepository', () => {
     await memberRepository.deleteAll();
 
     saveMember.userId = 'tester';
-    saveMember.userPw = '1234';
-    saveMember.userName = 'testerName';
-    saveMember.nickName = 'testerNickname';
+    saveMember.password = '1234';
+    saveMember.username = 'testerName';
+    saveMember.nickname = 'testerNickname';
     saveMember.email = 'tester@tester.com';
-    saveMember.profileThumbnail = 'localProfileName.jpg';
+    saveMember.profile = 'localProfileName.jpg';
     saveMember.provider = 'local';
 
     saveAdmin.userId = 'admin';
-    saveAdmin.userPw = '1234';
-    saveAdmin.userName = 'adminName';
-    saveAdmin.nickName = 'adminNickname';
+    saveAdmin.password = '1234';
+    saveAdmin.username = 'adminName';
+    saveAdmin.nickname = 'adminNickname';
     saveAdmin.email = 'admin@admin.com';
-    saveAdmin.profileThumbnail = 'adminProfileName.jpg';
+    saveAdmin.profile = 'adminProfileName.jpg';
     saveAdmin.provider = 'local';
 
     const createSaveMember: Member[] = [
       memberRepository.create(saveMember),
       memberRepository.create(saveAdmin)
     ];
+    const savedMembers: Member[] = await memberRepository.save(createSaveMember);
+    saveMember.id = savedMembers[0].id;
+    saveAdmin.id = savedMembers[1].id;
 
     const saveAdminAuths: Auth[] = authArray.map(role =>
       authRepository.create({
-        userId: saveAdmin.userId,
+        userId: saveAdmin.id,
         auth: role,
       })
     );
 
     saveAdminAuths.push(authRepository.create({
-      userId: saveMember.userId,
+      userId: saveMember.id,
       auth: authArray[0],
     }));
 
-    await memberRepository.save(createSaveMember);
     await authRepository.save(saveAdminAuths);
   });
 
@@ -91,26 +94,32 @@ describe('authRepository', () => {
     await app.close();
   })
 
-  describe('getMemberAuths', () => {
+  describe('getMemberAuthInfo', () => {
     it('일반 사용자 권한 조회', async () => {
-      const auth: string[] = await authRepository.getMemberAuths(saveMember.userId);
+      const result: MemberAuthInfo | undefined = await authRepository.getMemberAuthInfo(saveMember.userId);
 
-      expect(auth.length).toBe(1);
-      expect(auth[0]).toBe('ROLE_MEMBER');
+      expect(result).toBeDefined();
+      expect(result?.id).toBe(saveMember.id);
+      expect(result?.roles).not.toStrictEqual([]);
+      expect(result?.roles.length).toBe(1);
+      expect(result?.roles[0]).toBe('ROLE_MEMBER');
     });
 
     it('관리자 권한 조회', async () => {
-      const auth: string[] = await authRepository.getMemberAuths(saveAdmin.userId);
+      const result: MemberAuthInfo | undefined = await authRepository.getMemberAuthInfo(saveAdmin.userId);
 
-      expect(auth.length).toBe(3);
-      for(let i = 0; i < auth.length; i++)
-        expect(auth[i]).toBe(authArray[i]);
+      expect(result).toBeDefined();
+      expect(result?.id).toBe(saveAdmin.id);
+      expect(result?.roles).not.toStrictEqual([]);
+      expect(result?.roles.length).toBe(authArray.length);
+      for(let i = 0; i < result!.roles.length; i++)
+        expect(result?.roles[i]).toBe(authArray[i]);
     });
 
     it('데이터가 없는 경우', async() => {
-      const auth: string[] = await authRepository.getMemberAuths('noneUser');
+      const result: MemberAuthInfo | undefined = await authRepository.getMemberAuthInfo('noneUser');
 
-      expect(auth.length).toBe(0);
+      expect(result).toBeUndefined();
     })
   });
 })

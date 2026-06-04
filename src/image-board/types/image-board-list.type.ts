@@ -1,7 +1,5 @@
 export type ImageBoardListRowType = {
-  imageNo: number;
-  imageTitle: string;
-  userId: string;
-  imageDate: string;
+  id: number;
+  title: string;
   imageName: string;
 }

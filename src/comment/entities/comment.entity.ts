@@ -1,4 +1,13 @@
-import { BaseEntity, Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  BaseEntity,
+  Column,
+  CreateDateColumn,
+  DeleteDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { Board } from '#board/entities/board.entity';
 import { Member } from '#member/entities/member.entity';
 import { ImageBoard } from '#imageBoard/entities/image-board.entity';
@@ -8,31 +17,34 @@ import { ImageBoard } from '#imageBoard/entities/image-board.entity';
 })
 export class Comment extends BaseEntity {
   @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true})
-  commentNo: number;
+  id: number;
 
-  @Column({ type: 'bigint', unsigned: true, nullable: true })
-  boardNo: number | null;
+  @Column({ name: 'board_id', type: 'bigint', unsigned: true, nullable: true })
+  boardId: number | null;
 
-  @Column({ type: 'bigint', unsigned: true, nullable: true })
-  imageNo: number | null;
+  @Column({ name: 'image_board_id', type: 'bigint', unsigned: true, nullable: true })
+  imageId: number | null;
 
-  @Column({ type: 'varchar', length: 50, nullable: false })
-  userId: string;
+  @Column({ name: 'user_id', type: 'bigint', nullable: false, unsigned: true })
+  userId: number;
 
   @Column({ type: 'text', nullable: false })
-  commentContent: string;
+  content: string;
 
-  @CreateDateColumn({ type: 'timestamp', precision: 3, default: () => 'CURRENT_TIMESTAMP(3)'})
-  commentDate: Date;
+  @CreateDateColumn({ name: 'created_at', type: 'timestamp', precision: 3, default: () => 'CURRENT_TIMESTAMP(3)'})
+  createdAt: Date;
 
-  @Column({ type: 'bigint', unsigned: true, nullable: true})
-  commentGroupNo: number;
+  @DeleteDateColumn({ name: 'deleted_at', type: 'timestamp', precision: 3, nullable: true})
+  deletedAt: Date | null;
 
-  @Column({ type: 'varchar', length: 200, nullable: true})
-  commentUpperNo: string;
+  @Column({ name: 'group_no', type: 'bigint', unsigned: true, nullable: true})
+  groupNo: number;
+
+  @Column({ name: 'upper_no', type: 'varchar', length: 255, nullable: true})
+  upperNo: string;
 
   @Column({ type: 'int', nullable: false, default: 1})
-  commentIndent: number;
+  indent: number;
 
   @ManyToOne(
     () => Board,
@@ -41,7 +53,7 @@ export class Comment extends BaseEntity {
       onDelete: 'CASCADE'
     }
   )
-  @JoinColumn({ name: 'boardNo', referencedColumnName: 'boardNo'})
+  @JoinColumn({ name: 'board_id', referencedColumnName: 'id'})
   board: Board;
 
   @ManyToOne(
@@ -51,7 +63,7 @@ export class Comment extends BaseEntity {
       onDelete: 'CASCADE'
     }
   )
-  @JoinColumn({ name: 'imageNo', referencedColumnName: 'imageNo'})
+  @JoinColumn({ name: 'image_board_id', referencedColumnName: 'id'})
   imageBoard: ImageBoard;
 
   @ManyToOne(
@@ -61,7 +73,7 @@ export class Comment extends BaseEntity {
       onDelete: 'CASCADE'
     }
   )
-  @JoinColumn({ name: 'userId', referencedColumnName: 'userId' })
+  @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })
   member: Member;
 
 }

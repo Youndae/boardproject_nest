@@ -9,6 +9,9 @@ import { LoggerModule } from '#config/logger/logger.module';
 import { RedisServiceModule } from '#common/services/redisService.module';
 import { OAuthGuardModule } from '#common/guards/oAuthGuard.module';
 import { PassportModule } from '@nestjs/passport';
+import { OAuthController } from '#auth/controllers/oauth.controller';
+import { MemberModule } from '#member/member.module';
+import { OAuthService } from '#auth/services/oAuth.service';
 
 @Module({
 	imports: [
@@ -19,12 +22,15 @@ import { PassportModule } from '@nestjs/passport';
 		RedisServiceModule,
 		LoggerModule,
 		OAuthGuardModule,
+		MemberModule
 	],
 	controllers: [
-    AuthController
+    AuthController,
+    OAuthController
   ],
 	providers: [
-    JWTTokenProvider
+    JWTTokenProvider,
+		OAuthService
   ],
 	exports: [
     JWTTokenProvider,

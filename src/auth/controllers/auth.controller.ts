@@ -1,49 +1,51 @@
-import { Controller, Get, HttpCode, Post, Req, Res, UseGuards, Next, Param } from "@nestjs/common";
+import { Controller, Get, HttpCode, Post, Req, Res, UseGuards, Param } from "@nestjs/common";
 import { LoggerService } from "#config/logger/logger.service";
 import { JWTTokenProvider } from "#auth/services/jwt-token.provider";
 import { AnonymousGuard } from "#common/guards/anonymous.guard";
 import { AuthGuard } from "@nestjs/passport";
-import type { Request, Response, NextFunction } from "express";
+import type { Request, Response } from "express";
 import { OAuthGuard } from '#common/guards/oauth.guard';
 import { RolesGuard } from '#common/guards/roles.guard';
 import { Roles } from '#common/decorators/roles.decorator';
 import { ConfigService } from '@nestjs/config';
 import { ApiTags } from '@nestjs/swagger';
+import { MemberStatusResponse } from '#member/dtos/out/member-status.response.dto';
+import { OAuthService } from '#auth/services/oAuth.service';
 
 @ApiTags('auth')
-@Controller('auth')
+@Controller('member')
 export class AuthController {
+  private readonly logger: LoggerService;
+
 	constructor(
-		private readonly logger: LoggerService,
+		private readonly originalLogger: LoggerService,
 		private readonly tokenProvider: JWTTokenProvider,
     private readonly configService: ConfigService,
-	) {}
+    private readonly oAuthService: OAuthService,
+	) {
+    this.logger = this.originalLogger.setContext(AuthController.name);
+  }
 
 	@UseGuards(AnonymousGuard, AuthGuard('local'))
 	@Post('/login')
 	@HttpCode(200)
 	async postLogin(
     @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-    @Next() next: NextFunction
-  ) {
+    @Res({ passthrough: true }) res: Response
+  ): Promise<MemberStatusResponse> {
 		try {
-			const member = req.user as { userId: string };
-	
+			const member = req.user as { userId: string, role: string };
+
 			await this.tokenProvider.issuedAllToken(member.userId, res);
-	
-			return { id: member.userId };
+
+			const result =  new MemberStatusResponse(member.userId, member.role);
+
+      return result;
 		}catch(error) {
-			this.logger.error('Failed to Login ', error);
-			return next(error);
+			this.logger.error('postLogin :: Failed to Login ', { error });
+			throw error;
 		}
 	}
-
-  @UseGuards(AnonymousGuard, OAuthGuard)
-  @Get('/oauth/:provider/')
-  async oAuthLogin(@Param('provider') provider: string) {
-    console.log('oauth login controller');
-  }
 
   @UseGuards(AnonymousGuard, OAuthGuard)
   @Get('/oauth/:provider/callback')
@@ -52,13 +54,21 @@ export class AuthController {
     @Req() req: Request,
     @Res() res: Response
   ) {
-
-    console.log('oauth callback');
-
-    const member = req.user as{ userId: string};
+    const member = req.user as { userId: string};
     await this.tokenProvider.issuedAllToken(member.userId, res);
 
-    res.redirect('http://localhost:3000/');
+    const hasNickname: boolean = await this.oAuthService.checkOAuthNickname(member.userId);
+
+    const redirectUrl = req.cookies?.['redirect_to'] ?? '/';
+
+    res.clearCookie('redirect_to', { path: '/' });
+
+    // 닉네임이 존재한다면
+    if(hasNickname) {
+      res.redirect(`http://localhost:3000${redirectUrl}`);
+    }
+
+    res.redirect(`http://localhost:3000/join/profile?redirect=${redirectUrl}`)
   }
 
   @Roles('ROLE_MEMBER')

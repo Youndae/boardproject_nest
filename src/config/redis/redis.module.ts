@@ -1,4 +1,4 @@
-import { Module, Global, OnModuleDestroy, Inject, OnModuleInit } from '@nestjs/common';
+import { Module, Global, OnModuleDestroy, Inject } from '@nestjs/common';
 import { createClient } from 'redis';
 import type { RedisClientType } from 'redis';
 import { ConfigModule, ConfigService } from '@nestjs/config';

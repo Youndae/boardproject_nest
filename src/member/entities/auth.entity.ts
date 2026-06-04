@@ -6,8 +6,8 @@ export class Auth extends BaseEntity {
   @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
   id: number;
 
-  @Column({ type: 'varchar', length: 50, nullable: false })
-  userId: string;
+  @Column({ name: 'user_id', type: 'bigint', nullable: false, unsigned: true })
+  userId: number;
 
   @Column({ type: 'varchar', length: 20, nullable: false })
   auth: string;
@@ -17,6 +17,6 @@ export class Auth extends BaseEntity {
     onUpdate: "CASCADE",
     nullable: false
   })
-  @JoinColumn({ name: 'userId', referencedColumnName: 'userId' })
+  @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })
   member: Member;
 }

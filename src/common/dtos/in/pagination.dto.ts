@@ -36,9 +36,9 @@ export class PaginationDTO {
     example: 1,
     required: false,
   })
-  pageNum: number = 1;
+  page: number = 1;
 
   constructor() {
-    if(!this.pageNum) this.pageNum = 1;
+    if(!this.page) this.page = 1;
   }
 }

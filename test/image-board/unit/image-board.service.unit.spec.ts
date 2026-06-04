@@ -2,47 +2,78 @@ import { ImageBoardService } from '#imageBoard/services/image-board.service';
 import { ImageBoardRepository } from '#imageBoard/repositories/image-board.repository';
 import { Test, TestingModule } from '@nestjs/testing';
 import { LoggerService } from '#config/logger/logger.service';
-import { ImageBoardDetailResponseDTO } from '#imageBoard/dtos/out/image-board-detail-response.dto';
+import { ImageBoardDetailResponse } from '#imageBoard/dtos/out/image-board-detail.response.dto';
 import { ImageBoard } from '#imageBoard/entities/image-board.entity';
 import { ImageData } from '#imageBoard/entities/image-data.entity';
 import { ImageDataRepository } from '#imageBoard/repositories/image-data.repository';
 import { ConfigService } from '@nestjs/config';
 import { ResizingService } from '#src/file/service/resizing.service';
 import { FileService } from '#src/file/service/file.service';
-import { ImageBoardPatchDataResponseDTO } from '#imageBoard/dtos/out/image-board-patch-data-response.dto';
+import { ImageBoardPatchDetailResponse } from '#imageBoard/dtos/out/image-board-patch-detail.response.dto';
+import { BadRequestException } from '#common/exceptions/bad-request.exception';
+import { ImageDataResponse } from '#imageBoard/dtos/out/image-data.response.dto';
+import { AccessDeniedException } from '#common/exceptions/access-denied.exception';
+import { Member } from '#member/entities/member.entity';
 
 describe('imageBoardService unitTest', () => {
   let imageBoardService: ImageBoardService;
   let imageBoardRepository: Partial<Record<keyof ImageBoardRepository, jest.Mock>>;
   let imageDataRepository: Partial<Record<keyof ImageDataRepository, jest.Mock>>;
 
-  const userId: string = 'tester';
+  const member: Member = new Member();
+  member.id = 1;
+  member.userId = 'tester';
+  member.password = '1234';
+  member.username = 'testerName';
+  member.nickname = 'testerNick';
+  member.email = 'tester@tester.com';
+  member.profile = null;
+  member.provider = 'local';
+
+
   const imageDataFixture: ImageData = new ImageData();
   imageDataFixture.imageName = 'testImageName.jpg';
-  imageDataFixture.oldName = 'testOldImageName.jpg';
+  imageDataFixture.originName = 'testOldImageName.jpg';
   imageDataFixture.imageStep = 1;
-  imageDataFixture.imageNo = 1;
+  imageDataFixture.imageId = 1;
   const imageBoardFixture: ImageBoard = new ImageBoard();
-  imageBoardFixture.imageNo = 1;
-  imageBoardFixture.imageTitle = 'testTitle';
-  imageBoardFixture.imageContent = 'testContent';
-  imageBoardFixture.userId = userId;
-  imageBoardFixture.imageDate = new Date();
+  imageBoardFixture.id = 1;
+  imageBoardFixture.title = 'testTitle';
+  imageBoardFixture.content = 'testContent';
+  imageBoardFixture.userId = member.id;
+  imageBoardFixture.createdAt = new Date();
   imageBoardFixture.imageDatas = [imageDataFixture];
+  imageBoardFixture.member = member;
+
 
   beforeEach(async () => {
     imageBoardRepository = {
       getImageBoardDetail: jest.fn()
     };
-    imageDataRepository = { }
+    imageDataRepository = {
+      findAllByImageId: jest.fn()
+    }
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       providers: [
         ImageBoardService,
         { provide: ImageBoardRepository, useValue: imageBoardRepository },
-        { provide: LoggerService, useValue: { info: jest.fn(), error: jest.fn() } },
+        {
+          provide: LoggerService,
+          useValue: {
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+            setContext: jest.fn().mockReturnThis()
+          },
+        },
         { provide: ImageDataRepository, useValue: imageDataRepository },
-        { provide: ConfigService, useValue: ConfigService },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn().mockReturnValue('/test/board/file/path'),
+          },
+        },
         { provide: ResizingService, useValue: ResizingService },
         { provide: FileService, useValue: FileService }
       ]
@@ -55,10 +86,10 @@ describe('imageBoardService unitTest', () => {
 
   describe('getImageBoardDetailService', () => {
     it('정상 조회', async () => {
-      const repositoryResult: ImageBoardDetailResponseDTO = new ImageBoardDetailResponseDTO(imageBoardFixture);
+      const repositoryResult: ImageBoardDetailResponse = new ImageBoardDetailResponse(imageBoardFixture);
       imageBoardRepository.getImageBoardDetail?.mockResolvedValue(repositoryResult);
 
-      const result: ImageBoardDetailResponseDTO = await imageBoardService.getImageBoardDetailService(1);
+      const result: ImageBoardDetailResponse = await imageBoardService.getDetailService(1);
 
       expect(result).not.toBeNull();
     });
@@ -66,41 +97,48 @@ describe('imageBoardService unitTest', () => {
     it('데이터가 없는 경우', async () => {
       imageBoardRepository.getImageBoardDetail?.mockResolvedValue(null);
 
-      await expect(imageBoardService.getImageBoardDetailService(1))
+      await expect(imageBoardService.getDetailService(1))
         .rejects
-        .toThrow('NOT_FOUND');
+        .toThrow(BadRequestException);
     });
   });
 
   describe('getPatchDataService', () => {
     it('정상 조회', async () => {
-      const repositoryResult: ImageBoardDetailResponseDTO = new ImageBoardDetailResponseDTO(imageBoardFixture);
-      imageBoardRepository.getImageBoardDetail?.mockResolvedValue(repositoryResult);
+      const baseDTOResponse: ImageBoardDetailResponse = new ImageBoardDetailResponse(imageBoardFixture);
+      const imageDataResult: ImageDataResponse[] = imageBoardFixture.imageDatas.map(v => new ImageDataResponse(v));
+      imageBoardRepository.getImageBoardDetail?.mockResolvedValue(baseDTOResponse);
+      imageDataRepository.findAllByImageId?.mockResolvedValue(imageDataResult);
 
-      const result: ImageBoardPatchDataResponseDTO = await imageBoardService.getPatchDataService(1, userId);
+      const result: ImageBoardPatchDetailResponse = await imageBoardService.getPatchDataService(1, member.userId);
 
       expect(result).not.toBeNull();
-      expect(result.imageNo).toBe(1);
-      expect(result.imageTitle).toBe(imageBoardFixture.imageTitle);
-      expect(result.imageContent).toBe(imageBoardFixture.imageContent);
-      expect(result.imageData).not.toStrictEqual([]);
+      expect(result.title).toBe(imageBoardFixture.title);
+      expect(result.content).toBe(imageBoardFixture.content);
+      expect(result.imageList).not.toStrictEqual([]);
+      expect(result.imageList).toStrictEqual(imageDataResult);
     });
 
     it('데이터가 없는 경우', async () => {
       imageBoardRepository.getImageBoardDetail?.mockResolvedValue(null);
 
-      await expect(imageBoardService.getPatchDataService(1, userId))
+      await expect(imageBoardService.getPatchDataService(1, member.userId))
         .rejects
-        .toThrow('NOT_FOUND');
+        .toThrow(BadRequestException);
+
+      expect(imageDataRepository.findAllByImageId).not.toHaveBeenCalled();
     });
 
     it('작성자가 일치하지 않는 경우', async () => {
-      const repositoryResult: ImageBoardDetailResponseDTO = new ImageBoardDetailResponseDTO(imageBoardFixture);
-      imageBoardRepository.getImageBoardDetail?.mockResolvedValue(repositoryResult);
+      const baseDTOResponse: ImageBoardDetailResponse = new ImageBoardDetailResponse(imageBoardFixture);
+      imageBoardRepository.getImageBoardDetail?.mockResolvedValue(baseDTOResponse);
+
 
       await expect(imageBoardService.getPatchDataService(1, 'wrongUser'))
         .rejects
-        .toThrow('ACCESS_DENIED');
+        .toThrow(AccessDeniedException);
+
+      expect(imageDataRepository.findAllByImageId).not.toHaveBeenCalled();
     })
   });
 });

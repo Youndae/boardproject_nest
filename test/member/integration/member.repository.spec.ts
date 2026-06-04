@@ -6,7 +6,6 @@ import { DataSource } from 'typeorm';
 import { INestApplication } from '@nestjs/common';
 import { MemberModule } from '#member/member.module';
 import { TestDatabaseModule } from '../../module/testDatabase.module';
-import { ProfileResponseDto } from '#member/dtos/out/profile-response.dto';
 
 describe('memberRepository', () => {
   let memberRepository: MemberRepository;
@@ -38,26 +37,28 @@ describe('memberRepository', () => {
     await memberRepository.deleteAll();
 
     localMember.userId = 'tester';
-    localMember.userPw = '1234';
-    localMember.userName = 'testerName';
-    localMember.nickName = 'testerNickname';
+    localMember.password = '1234';
+    localMember.username = 'testerName';
+    localMember.nickname = 'testerNickname';
     localMember.email = 'tester@tester.com';
-    localMember.profileThumbnail = 'localProfileName.jpg';
+    localMember.profile = 'localProfileName.jpg';
     localMember.provider = 'local';
 
     googleMember.userId = 'googleTester';
-    googleMember.userPw = '1234';
-    googleMember.userName = 'googleTesterName';
-    googleMember.nickName = null;
+    googleMember.password = '1234';
+    googleMember.username = 'googleTesterName';
+    googleMember.nickname = null;
     googleMember.email = 'googleTester@tester.com';
-    googleMember.profileThumbnail = null;
+    googleMember.profile = null;
     googleMember.provider = 'google';
 
     const saveLocalMember: Member = memberRepository.create(localMember);
     const saveGoogleMember: Member = memberRepository.create(googleMember);
 
-    await memberRepository.save(saveLocalMember);
-    await memberRepository.save(saveGoogleMember);
+    const savedLocalMember: Member = await memberRepository.save(saveLocalMember);
+    const savedGoogleMember: Member = await memberRepository.save(saveGoogleMember);
+    localMember.id = savedLocalMember.id;
+    googleMember.id = savedGoogleMember.id;
   })
 
   afterAll(async () => {
@@ -66,16 +67,16 @@ describe('memberRepository', () => {
     await app.close();
   })
   
-  describe('test', () => {
+  describe('findMemberByUserIdFromLocal', () => {
     it('정상 조회', async () => {
       const member: Member | null = await memberRepository.findMemberByUserIdFromLocal(localMember.userId);
 
       expect(member?.userId).toBe(localMember.userId);
-      expect(member?.userPw).toBe(localMember.userPw);
-      expect(member?.userName).toBeUndefined();
-      expect(member?.nickName).toBeUndefined();
+      expect(member?.password).toBe(localMember.password);
+      expect(member?.username).toBeUndefined();
+      expect(member?.nickname).toBeUndefined();
       expect(member?.email).toBeUndefined();
-      expect(member?.profileThumbnail).toBeUndefined();
+      expect(member?.profile).toBeUndefined();
       expect(member?.provider).toBeUndefined();
     });
 
@@ -92,11 +93,11 @@ describe('memberRepository', () => {
 
       expect(member).not.toBeNull();
       expect(member?.userId).toBe(googleMember.userId);
-      expect(member?.userPw).toBeUndefined();
-      expect(member?.userName).toBeUndefined();
-      expect(member?.nickName).toBeUndefined();
+      expect(member?.password).toBeUndefined();
+      expect(member?.username).toBeUndefined();
+      expect(member?.nickname).toBeUndefined();
       expect(member?.email).toBeUndefined();
-      expect(member?.profileThumbnail).toBeUndefined();
+      expect(member?.profile).toBeUndefined();
       expect(member?.provider).toBeUndefined();
     });
 
@@ -129,24 +130,37 @@ describe('memberRepository', () => {
 
   describe('findMemberProfileByUserId', () => {
     it('정상 조회', async () => {
-      const result: ProfileResponseDto = await memberRepository.findMemberProfileByUserId(localMember.userId);
+      const result: Member | null = await memberRepository.findMemberProfileByUserId(localMember.id);
 
-      expect(result.nickName).toBe(localMember.nickName);
-      expect(result.profileThumbnail).toBe(localMember.profileThumbnail);
+      expect(result).not.toBeNull();
+      expect(result?.nickname).toBe(localMember.nickname);
+      expect(result?.email).toBe(localMember.email);
+      expect(result?.profile).toBe(localMember.profile);
+      expect(result?.password).toBeUndefined();
+      expect(result?.username).toBeUndefined();
+      expect(result?.id).toBeUndefined();
+      expect(result?.userId).toBeUndefined();
     });
 
-    it('닉네임과 프로필 이미지 모두 Null인 사용자 정상 조회', async () => {
-      const result: ProfileResponseDto = await memberRepository.findMemberProfileByUserId(googleMember.userId);
-
-      expect(result.nickName).toBeNull();
-      expect(result.profileThumbnail).toBeNull();
-    });
 
     it('존재하지 않는 사용자 조회', async () => {
-      const result: ProfileResponseDto = await memberRepository.findMemberProfileByUserId('noneMember');
+      const result: Member | null = await memberRepository.findMemberProfileByUserId(999);
 
-      expect(result.nickName).toBeNull();
-      expect(result.profileThumbnail).toBeNull();
+      expect(result).toBeNull();
+    })
+  });
+
+  describe('findNicknameByOAuthUserId', () => {
+    it('정상 조회', async () => {
+      const result: string | null = await memberRepository.findNicknameByOAuthUserId(googleMember.userId);
+
+      expect(result).toBe(googleMember.nickname);
+    });
+
+    it('존재하지 않는 데이터인 경우', async () => {
+      const result: string | null = await memberRepository.findNicknameByOAuthUserId('noneUser');
+
+      expect(result).toBeNull();
     })
   })
 })

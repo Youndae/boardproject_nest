@@ -14,6 +14,8 @@ import { BadRequestException } from '#common/exceptions/bad-request.exception';
 @Injectable()
 export class JWTTokenProvider {
 
+  private readonly logger: LoggerService;
+
   private readonly accessSecret: string;
   private readonly refreshSecret: string;
 
@@ -31,11 +33,13 @@ export class JWTTokenProvider {
   private readonly tokenPrefix: string;
 
   constructor(
-    private readonly logger: LoggerService,
+    private readonly originalLogger: LoggerService,
     private readonly redisService: RedisService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService
   ) {
+    this.logger = this.originalLogger.setContext(JWTTokenProvider.name);
+
     const missingKey: string[] = [];
 
     this.accessSecret = this.configService.get<string>('JWT_ACCESS_SECRET') ?? missingKey.push('JWT_ACCESS_SECRET') as any;
@@ -85,10 +89,10 @@ export class JWTTokenProvider {
     if(redisValue === replacedToken)
       return verifyValue;
     else if(redisValue === null){
-      this.logger.error('Redis Token Value is Null. ', { replacedToken });
+      this.logger.error('verifyAccessToken :: Redis Token Value is Null. ', { replacedToken });
       throw new TokenStealingException();
     } else {
-      this.logger.error('Access Token Stealing. ', { redisValue, replacedToken });
+      this.logger.error('verifyAccessToken :: Access Token Stealing. ', { redisValue, replacedToken });
       this.deleteAllTokenCookie(res);
       const refreshKey = this.getRedisKey(this.refreshKeyPrefix, verifyValue, inoValue);
       await this.redisService.deleteTokenValue(redisKey);
@@ -106,10 +110,10 @@ export class JWTTokenProvider {
     if(redisValue === replacedToken)
       return verifyValue;
     else if(redisValue === null) {
-      this.logger.error('Redis Token Value is Null. ', { replacedToken });
+      this.logger.error('verifyRefreshToken :: Redis Token Value is Null. ', { replacedToken });
       throw new TokenStealingException();
     }else {
-      this.logger.error('Refresh Token Stealing. ', { redisValue, replacedToken });
+      this.logger.error('verifyRefreshToken :: Refresh Token Stealing. ', { redisValue, replacedToken });
       this.deleteAllTokenCookie(res);
       const accessKey = this.getRedisKey(this.accessKeyPrefix, verifyValue, inoValue);
       await this.redisService.deleteTokenValue(accessKey);
@@ -120,18 +124,16 @@ export class JWTTokenProvider {
 
   private verifyToken(tokenValue: string, secret: string): { userId: string } {
     try {
-      const verifyValue: { userId: string } = this.jwtService.verify(tokenValue, { secret });
-
-      return verifyValue;
+      return this.jwtService.verify(tokenValue, { secret });
     }catch (error) {
       if(error instanceof TokenExpiredError) {
-        this.logger.info('Token Expired', error.message);
+        this.logger.info('verifyToken :: Token Expired', { error });
         throw new TokenExpiredException();
       }else if(error instanceof JsonWebTokenError) {
-        this.logger.info('Invalid Token', error.message);
+        this.logger.info('verifyToken :: Invalid Token', { error });
         throw new TokenInvalidException();
       }else  {
-        this.logger.error('token verify error', error.message);
+        this.logger.error('verifyToken :: token verify error', { error });
         throw new InternalServerErrorException();
       }
     }
@@ -238,6 +240,7 @@ export class JWTTokenProvider {
       case 'd':
         return value * 24 * 60 * 60 * 1000;
       default:
+        this.logger.warn('convertExpiresToMillisecond :: Invalid expiresIn ', { expiresIn });
         throw new BadRequestException('Invalid convertExpiresToMillisecond');
     }
   }
