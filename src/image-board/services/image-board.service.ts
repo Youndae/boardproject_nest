@@ -49,7 +49,7 @@ export class ImageBoardService {
 
     if(!boardDetail){
       this.logger.error(
-        'imageBoardService.getDetailService NotFoundException.',
+        'getDetailService :: Board data not found.',
         { id }
       );
       throw new BadRequestException();
@@ -80,7 +80,11 @@ export class ImageBoardService {
     }catch(error) {
       this.logger.error('imageBoardService.postBoardService error.', error);
 
-      await this.fileService.deleteBoardFiles(this.destDir, uploadedFiles);
+      if(uploadedFiles.length === 0){
+        const fileNames: string[] = files.map(v => v.filename);
+        await this.fileService.deleteBoardFiles(this.destDir, fileNames);
+      }else
+        await this.fileService.deleteBoardFiles(this.destDir, uploadedFiles);
 
       throw error;
     }
@@ -178,7 +182,10 @@ export class ImageBoardService {
     }catch(error) {
       this.logger.error('patchImageBoardService error.', error);
 
-      if(uploadedFiles.length > 0)
+      if(uploadedFiles.length === 0 && files) {
+        const fileNames: string[] = files.map(v => v.filename);
+        await this.fileService.deleteBoardFiles(this.destDir, fileNames);
+      } else if(uploadedFiles.length > 0)
         await this.fileService.deleteBoardFiles(this.destDir, uploadedFiles);
 
       throw error;
@@ -237,14 +244,13 @@ export class ImageBoardService {
     const writer: number | null = await this.imageBoardRepository.findUserIdById(id);
 
     if(!writer){
-      this.logger.warn('imageBoardService.checkWriter :: writer is null.', { writer, userId });
+      this.logger.warn('checkWriter :: writer is null.', { writer, userId });
       throw new BadRequestException();
     }
 
     if(writer !== userId){
-      this.logger.warn('imageBoardService.checkWriter :: writer and userId not equals', { writer, userId });
+      this.logger.warn('checkWriter :: writer and userId not equals', { writer, userId });
       throw new AccessDeniedException();
     }
-
   }
 }

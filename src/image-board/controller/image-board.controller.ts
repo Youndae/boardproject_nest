@@ -119,10 +119,10 @@ export class ImageBoardController {
   })
   async postImageBoard(
     @Body() postDTO: PostImageBoardRequest,
-    @UploadedFiles() files: Express.Multer.File[],
     @Req() req: Request
   ): Promise<number>{
     const userId: number = getAuthId(req);
+    const files = req.files as Express.Multer.File[];
 
     return await this.imageboardService.postBoardService(postDTO, files, userId);
   }
@@ -203,10 +203,10 @@ export class ImageBoardController {
   async patchImageBoard(
     @Param('id', ParseIntPipe) id: number,
     @Body() patchDTO: PatchImageBoardRequest,
-    @UploadedFiles() files: Express.Multer.File[],
     @Req() req: Request
   ): Promise<number> {
     const userId: number = getAuthId(req);
+    const files = req.files as Express.Multer.File[];
 
     return await this.imageboardService.patchImageBoardService(id, patchDTO, files, userId);
   }
